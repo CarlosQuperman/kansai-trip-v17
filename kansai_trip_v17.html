@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>간사이 4박 5일 (V14)</title>
+<title>간사이 4박 5일 (V27)</title>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -126,21 +126,339 @@
   .sched-row.active td{ background: var(--hi) !important; border-bottom-color: rgba(251,146,60,0.40); }
   .sched-row.active td:first-child{ box-shadow: inset 3px 0 0 var(--hiBorder); }
 
+  .map-panel{ width:100%; }
+  .map-frame{
+    border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow);
+    overflow: hidden; background: rgba(255,255,255,0.7);
+    margin: 0;
+  }
   #map{
     width: 100%;
     height: 540px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-    overflow:hidden;
     background: rgba(255,255,255,0.7);
   }
-  .map-frame{ border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; background: rgba(255,255,255,0.7); }
+  .map-actions{
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .map-fullscreen-btn{
+    border:1px solid rgba(2,8,23,0.15);
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .map-layer-group{
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .map-layer-btn{
+    border:1px solid rgba(2,8,23,0.15);
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .map-layer-btn.active{
+    border-color: #0ea5e9;
+    background: rgba(14,165,233,0.12);
+    color: #0f172a;
+  }
+  .map-fullscreen-btn:hover,
+  .map-layer-btn:hover{ background: rgba(14,165,233,0.08); }
+  .map-panel.fullscreen-fallback{
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    padding: 10px;
+    background: rgba(15, 23, 42, 0.95);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+  .map-panel.fullscreen-fallback .map-frame{
+    flex: 1;
+    margin: 0;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .map-panel.fullscreen-fallback #map{ height: 100%; }
+  .map-panel.fullscreen-fallback .map-actions{ margin-top: 8px; justify-content: flex-end; }
+  .map-panel:fullscreen,
+  .map-panel:-webkit-full-screen{
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    padding: 10px;
+    background: rgba(15, 23, 42, 0.95);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+  .map-panel:fullscreen .map-frame,
+  .map-panel:-webkit-full-screen .map-frame{
+    flex: 1;
+    margin: 0;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .map-panel:fullscreen #map,
+  .map-panel:-webkit-full-screen #map{
+    height: 100%;
+  }
+  .map-panel:fullscreen .map-actions,
+  .map-panel:-webkit-full-screen .map-actions{
+    margin-top: 8px;
+    justify-content: flex-end;
+  }
+
+  .subway-station-icon{
+    background: transparent;
+    border: 0;
+  }
+  .subway-station-pin{
+    --line-color:#334155;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    transform: rotate(45deg);
+    border-radius: 9px;
+    background: linear-gradient(145deg, var(--line-color), #0f172a);
+    border: 2px solid rgba(255,255,255,0.95);
+    box-shadow: 0 5px 12px rgba(2,8,23,0.38), 0 0 0 2px rgba(15,23,42,0.55);
+  }
+  .subway-station-pin::before{
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: 13px;
+    border: 1.5px solid rgba(255,255,255,0.75);
+    opacity: 0.95;
+  }
+  .subway-station-badge{
+    position: absolute;
+    inset: 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+    text-shadow: 0 1px 2px rgba(2,8,23,0.45);
+    user-select: none;
+  }
+  .subway-station-badge::after{
+    content: "";
+    position: absolute;
+    bottom: 5px;
+    width: 12px;
+    height: 2px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 -4px 0 rgba(255,255,255,0.75);
+  }
+
+  .hotel-marker-icon{
+    background: transparent;
+    border: 0;
+  }
+  .hotel-marker-wrap{
+    width: 44px;
+    height: 56px;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .hotel-marker-body{
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(160deg, #0ea5e9, #0f766e);
+    border: 3px solid rgba(255,255,255,0.95);
+    box-shadow: 0 6px 14px rgba(2,8,23,0.35), 0 0 0 2px rgba(14,165,233,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 900;
+  }
+  .hotel-marker-tip{
+    position: absolute;
+    top: 35px;
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 14px solid #0f766e;
+    filter: drop-shadow(0 3px 2px rgba(2,8,23,0.28));
+  }
+  .hotel-marker-order{
+    position: absolute;
+    right: 1px;
+    top: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #111827;
+    border: 2px solid rgba(255,255,255,0.95);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(2,8,23,0.35);
+  }
+  .gmaps-open-wrap{
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(2,8,23,0.12);
+  }
+  .gmaps-open-btn{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 9px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .gmaps-open-btn:hover{
+    background: #0b1220;
+  }
+
+  .food-lightbox{
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+  }
+  .food-lightbox.is-open{ display: flex; }
+  .food-lightbox-backdrop{
+    position: absolute;
+    inset: 0;
+    background: rgba(2,6,23,0.85);
+  }
+  .food-lightbox-inner{
+    position: relative;
+    width: min(94vw, 1024px);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+    color: #e2e8f0;
+  }
+  .food-lightbox-toolbar{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .food-lightbox-toolbar button{
+    border:1px solid rgba(255,255,255,0.25);
+    background: rgba(15,23,42,0.75);
+    color:#f8fafc;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .food-lightbox-toolbar .scale-label{ min-width: 64px; text-align: center; font-size:12px; color:#cbd5e1; }
+  .food-lightbox-caption{ flex: 1; font-weight: 900; color:#f8fafc; }
+  .food-lightbox-media-wrap{
+    position: relative;
+    overflow: auto;
+    overscroll-behavior: contain;
+    min-height: 120px;
+    background: rgba(15,23,42,0.75);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    flex: 1;
+    touch-action: pan-x pan-y;
+    user-select: none;
+  }
+  .food-lightbox-media-wrap img{
+    display: block;
+    width: 100%;
+    min-width: 100%;
+    max-width: none;
+    height: auto;
+    transform-origin: top left;
+    transition: width 0.12s ease;
+    transform: none;
+    user-select: none;
+    pointer-events: auto;
+    cursor: zoom-in;
+  }
+  .food-lightbox-media-wrap img.is-panning{ cursor: zoom-out; }
 .alt-layout{ display:grid; grid-template-columns:minmax(0,2.5fr) minmax(240px,1fr); gap:14px; align-items:start; }
 .alt-main{ min-width:0; }
 .legend-col{ min-width:220px; }
 .legend-card{ position: sticky; top: 14px; left: auto; bottom: auto; width: 100%; z-index: 20; background: rgba(255,255,255,0.90); padding: 12px 12px; border: 1px solid rgba(2,8,23,0.12); border-radius: 16px; box-shadow: 0 12px 28px rgba(2,8,23,0.12); font-size: 13px; }
 .legend-title{ font-weight: 900; margin-bottom: 8px; color:#111827; }
+  .food-wrap{ max-width: 1200px; margin: 0 auto; }
+  .food-title{ margin:0 0 10px 0; font-size:20px; }
+  .food-sub{ margin:0 0 12px 0; color:#475569; font-size:13px; }
+  .food-credit{
+    border:2px solid #ef4444; background:#fff7f7; color:#7f1d1d;
+    border-radius:12px; padding:12px; font-size:14px; font-weight:800; line-height:1.45; margin-bottom:14px;
+  }
+  .food-credit a{ color:#b91c1c; font-weight:900; text-decoration:underline; }
+  .food-topic-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .food-topic-btn{
+    border:1px solid rgba(2,8,23,0.12); background:rgba(255,255,255,0.82); border-radius:999px;
+    padding:8px 12px; font-size:13px; font-weight:900; cursor:pointer;
+  }
+  .food-topic-btn.active{ background:rgba(14,165,233,0.18); border-color:#0ea5e9; color:#0f172a; }
+  .food-layout{
+    display:grid; grid-template-columns:220px minmax(0,1fr); gap:12px; align-items:start;
+  }
+  .food-detail-col{
+    border:1px solid rgba(2,8,23,0.10); border-radius:12px; background:rgba(255,255,255,0.88); padding:10px;
+  }
+  .food-detail-title{ font-size:12px; color:#475569; margin:0 0 8px 0; font-weight:800; }
+  .food-detail-list{ display:flex; flex-direction:column; gap:7px; }
+  .food-detail-btn{
+    border:1px solid rgba(2,8,23,0.12); background:#fff; border-radius:10px;
+    padding:8px 9px; font-size:13px; font-weight:800; cursor:pointer; text-align:left;
+  }
+  .food-detail-btn.active{ background:rgba(16,185,129,0.14); border-color:#10b981; color:#064e3b; }
+  .food-view{
+    border:1px solid rgba(2,8,23,0.10); border-radius:14px; background:rgba(255,255,255,0.88);
+    padding:12px;
+  }
+  .food-image-box{ border:1px solid rgba(2,8,23,0.10); border-radius:12px; overflow:hidden; background:#fff; margin-bottom:10px; }
+  .food-image{ width:100%; max-height:520px; object-fit:contain; display:block; background:#fff; cursor:zoom-in; }
+  .food-image-tip{ font-size:12px; color:#64748b; padding:8px 10px; border-top:1px solid rgba(2,8,23,0.10); background:#f8fafc; }
+  .food-table{ width:100%; border-collapse:collapse; font-size:14px; }
+  .food-table th,.food-table td{ border:1px solid rgba(2,8,23,0.10); padding:9px; text-align:left; vertical-align:top; }
+  .food-table th{ width:150px; background:#f4f7fb; font-weight:900; }
+  .food-empty{ border:1px dashed rgba(2,8,23,0.16); border-radius:12px; padding:24px; text-align:center; color:#64748b; background:#fafcff; }
   .hidden{ display:none !important; }
 
   @media (max-width: 980px){
@@ -148,6 +466,7 @@
   .panel.left, .panel.right{ min-width: unset; }
   #map{ height: 480px; }
   .alt-layout{ grid-template-columns: 1fr; }
+  .food-layout{ grid-template-columns:1fr; }
 }
 </style>
 
@@ -157,7 +476,7 @@
 <div class="container-wide header">
   <div class="header-inner">
     <div>
-      <h1>🗾🍶🚬 2026 간사이 4박5일 (V17)</h1>
+      <h1>🗾🍶🚬 2026 간사이 4박5일 (V27)</h1>
       <div class="sub">Minn Umeda East 베이스 · DAY 버튼으로 전환 · 일정표↔지도 하이라이트</div>
       <div class="day-tabs">
         <div class="day-btn active" data-day="day1">DAY 1 – 오사카 입성</div>
@@ -166,6 +485,7 @@
         <div class="day-btn" data-day="day4">DAY 4 – 오사카?</div>
         <div class="day-btn" data-day="day5">DAY 5 – 귀국</div>
         <div class="day-btn" data-day="visitjapan">입국 준비</div>
+        <div class="day-btn" data-day="subway">오사카 지하철</div>
         <div class="day-btn" data-day="cost">비용</div>
       </div>
     </div>
@@ -606,13 +926,59 @@
           </div>
         </div>
       </div>
+      <div id="subway" class="day-content hidden">
+        <div class="card">
+          <h2>🚇 오사카 지하철 노선 정보</h2>
+          <div class="sub">제공해주신 CSV 데이터(오사카 지하철 정보)를 HTML 내부에 고정 삽입한 표입니다. 표에서 역 행을 누르면 지도에서 해당 역이 하이라이트되고, 같은 노선의 다음 역과 연결선이 함께 표시됩니다.</div>
+          <div id="subwaySummary" class="sub" style="margin-top:8px;"></div>
+          <div class="table-scroll" style="margin-top:10px;">
+            <table class="summary-table schedule-table">
+              <thead>
+                <tr>
+                  <th>노선</th>
+                  <th>역명</th>
+                  <th>설명</th>
+                  <th>일본어 주소</th>
+                  <th>위도</th>
+                  <th>경도</th>
+                </tr>
+              </thead>
+              <tbody id="subwayTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="panel right">
-      <div id="mapFrame" class="map-frame"><div id="map"></div></div>
+      <div id="mapPanel" class="map-panel">
+        <div id="mapFrame" class="map-frame"><div id="map"></div></div>
+        <div class="map-actions">
+          <span class="map-layer-group" aria-label="지도 유형 선택" style="display:inline-flex;">
+            <button id="mapLayerStreetBtn" class="map-layer-btn active" type="button" data-layer="street">일반 지도</button>
+            <button id="mapLayerSatelliteBtn" class="map-layer-btn" type="button" data-layer="satellite">위성 지도</button>
+            <button id="mapLayerSubwayBtn" class="map-layer-btn" type="button" data-layer="subway">오사카 지하철</button>
+          </span>
+          <button id="mapFullscreenBtn" class="map-fullscreen-btn" type="button" aria-pressed="false">지도 전체화면</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<div id="foodImageLightbox" class="food-lightbox" aria-hidden="true">
+  <div id="foodLightboxBackdrop" class="food-lightbox-backdrop"></div>
+  <div class="food-lightbox-inner">
+    <div class="food-lightbox-toolbar">
+      <div id="foodLightboxCaption" class="food-lightbox-caption"></div>
+      <span class="scale-label" id="foodLightboxScale">100%</span>
+      <button id="foodLightboxZoomOut" type="button">-</button>
+      <button id="foodLightboxZoomIn" type="button">+</button>
+      <button id="foodLightboxZoomReset" type="button">100%</button>
+      <button id="foodLightboxClose" type="button">닫기</button>
+    </div>
+    <div id="foodLightboxMediaWrap" class="food-lightbox-media-wrap">
+      <img id="foodLightboxImage" src="" alt="">
     </div>
   </div>
 </div>
-
 
 <div class="container-fixed">
   <div class="alt-layout">
@@ -714,6 +1080,7 @@
   <div id="day4-alt" class="day-alt hidden"><div class="card"><h2>🧩 DAY 4 – 오사카? 대안</h2><div class="sub">미정</div></div></div>
   <div id="day5-alt" class="day-alt hidden"><div class="card"><h2>🧩 DAY 5 – 귀국 대안</h2><div class="table-scroll"><table class="summary-table alt"><thead><tr><th>기준 속성: 옵션</th><th>기준 속성: 추천 상황</th><th>기준 속성: 대안 루트</th><th>기준 속성: 선택 이유</th></tr></thead><tbody><tr><td class="mono">A</td><td>🚌 리무진 만석/지연</td><td>우메다역 인근 택시로 JR/난카이 급행 연계</td><td>출발시간 리스크 분산</td></tr><tr><td class="mono">B</td><td>⏱️ 공항 조기도착 필요</td><td>07:50 전후 버스로 1회 앞당김</td><td>체크인/출국 대기 안정화</td></tr><tr><td class="mono">C</td><td>☔ 우천 + 수하물 다수</td><td>숙소→정류장 택시 전환</td><td>젖은 짐/보행 피로 최소화</td></tr></tbody></table></div></div></div>
   <div id="visitjapan-alt" class="day-alt hidden"><div class="card"><h2>🧩 입국 준비 체크</h2><div class="sub">출발 48시간 전까지 QR 생성 완료 권장. 여권/항공편/숙소 주소를 먼저 정리하면 입력이 빠릅니다.</div></div></div>
+  <div id="subway-alt" class="day-alt hidden"><div class="card"><h2>🧩 지하철 활용 메모</h2><div class="sub">지도에서 오사카 지하철 레이어를 켜고, 마커 팝업으로 노선/역/주변 정보를 빠르게 확인할 수 있습니다.</div></div></div>
   <div id="cost-alt" class="day-alt hidden"><div class="card"><h2>🧩 비용 운용 메모</h2><div class="sub">공통비(교통·입장)와 개인비(식음·쇼핑)를 분리하면 정산이 쉬워집니다. 필요하면 다음 버전에서 환율 자동 계산 로직 추가 가능합니다.</div></div></div>
     </div>
     <div class="legend-col">
@@ -728,7 +1095,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const DAYS = {"day1": {"name": "DAY 1 – 오사카 입성", "stops": [{"id": "kix", "order": 1, "emoji": "🛬", "title": "関西国際空港(간사이 국제공항)", "lat": 34.4353, "lon": 135.244, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🛬 1. 関西国際空港(간사이 국제공항)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Kansai_International_Airport\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Kansai%20International%20Airport%20Terminal%201.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">입국 후 오사카(우메다)로 이동 시작.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Kansai_International_Airport\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EA%B0%84%EC%82%AC%EC%9D%B4%20%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EA%B0%84%EC%82%AC%EC%9D%B4%20%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "hankyu_sb", "order": 2, "emoji": "🚌", "title": "阪急三番街(한큐 삼번가) 하차", "lat": 34.7055, "lon": 135.4989, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🚌 2. 阪急三番街(한큐 삼번가) 하차</div>\n      <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Hankyu%20Sanbangai%20Osaka.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">리무진 버스 도착 지점(우메다).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%ED%95%9C%ED%81%90%20%EC%82%BC%EB%B2%88%EA%B0%80\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%ED%95%9C%ED%81%90%20%EC%82%BC%EB%B2%88%EA%B0%80\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "donki_umeda", "order": 3, "emoji": "🧳", "title": "ドン・キホーテ 梅田本店(돈키호테 우메다 본점)", "lat": 34.705, "lon": 135.5033, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🧳 3. ドン・キホーテ 梅田本店(돈키호테 우메다 본점)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Don_Quijote_(store)\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Don%20Quijote%20sign.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">라커에 짐 보관(가볍게 이동).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Don_Quijote_(store)\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%8F%88%ED%82%A4%ED%98%B8%ED%85%8C\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%8F%88%ED%82%A4%ED%98%B8%ED%85%8C\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "hep5", "order": 4, "emoji": "🎡", "title": "HEP FIVE 観覧車(햅파이브 관람차)", "lat": 34.7057, "lon": 135.5032, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🎡 4. HEP FIVE 観覧車(햅파이브 관람차)</div>\n      <a href=\"https://en.wikipedia.org/wiki/HEP_FIVE\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/HEP_FIVE_Ferris_wheel_Osaka.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">우메다 랜드마크 체험.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/HEP_FIVE\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/HEP%20FIVE\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=HEP%20FIVE\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "hotel", "order": 5, "emoji": "🏨", "title": "Minn Umeda East(민 유메다 이스트)", "lat": 34.700407, "lon": 135.505369, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🏨 5. Minn Umeda East(민 유메다 이스트)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Umeda%20Sky%20Building%20night.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">15:00 체크인(4박 5일 베이스).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/Minn%20Umeda%20East\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=Minn%20Umeda%20East\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "tsutenkaku", "order": 6, "emoji": "🗼", "title": "通天閣(츠텐카쿠)·新世界(신세카이)", "lat": 34.6525, "lon": 135.5063, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🗼 6. 通天閣(츠텐카쿠)·新世界(신세카이)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Ts%C5%ABtenkaku\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Tsutenkaku%20Osaka.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">오사카 남쪽 감성 포인트.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Ts%C5%ABtenkaku\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%B8%A0%ED%85%90%EC%B9%B4%EC%BF%A0\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%B8%A0%ED%85%90%EC%B9%B4%EC%BF%A0\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "dendentown", "order": 7, "emoji": "🕹️", "title": "でんでんタウン(덴덴타운)", "lat": 34.659, "lon": 135.5066, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🕹️ 7. でんでんタウン(덴덴타운)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Nipponbashi\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Nipponbashi%20Den%20Den%20Town.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">전자·서브컬처 거리.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Nipponbashi\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%8D%B4%EB%8D%B4%ED%83%80%EC%9A%B4\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%8D%B4%EB%8D%B4%ED%83%80%EC%9A%B4\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "dotonbori", "order": 8, "emoji": "🌈", "title": "道頓堀(도톤보리)", "lat": 34.6687, "lon": 135.5016, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌈 8. 道頓堀(도톤보리)</div>\n      <a href=\"https://en.wikipedia.org/wiki/D%C5%8Dtonbori\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Dotonbori%20at%20night.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">분위기 산책 후 우메다로 복귀.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/D%C5%8Dtonbori\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%8F%84%ED%86%A4%EB%B3%B4%EB%A6%AC\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%8F%84%ED%86%A4%EB%B3%B4%EB%A6%AC\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "back_umeda", "order": 9, "emoji": "🍻", "title": "梅田(우메다) 복귀·숙소 근처 마무리", "lat": 34.7025, "lon": 135.4959, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🍻 9. 梅田(우메다) 복귀·숙소 근처 마무리</div>\n      <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Osaka%20Station%202023.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">숙소 근처에서 포장/술 구매 후 숙소에서 휴식.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%9A%B0%EB%A9%94%EB%8B%A4\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%9A%B0%EB%A9%94%EB%8B%A4\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}], "segments": [{"order": 1, "emoji": "🚌", "mode": "리무진 버스", "time": "약 50~70분", "cost": "왕복 3,300엔(편도 1,650엔 가정)", "from_id": "kix", "to_id": "hankyu_sb", "color": "#4C78A8"}, {"order": 2, "emoji": "🚶", "mode": "도보", "time": "약 10~15분", "cost": "0엔", "from_id": "hankyu_sb", "to_id": "donki_umeda", "color": "#F58518"}, {"order": 3, "emoji": "🚶", "mode": "도보", "time": "약 5~10분", "cost": "0엔", "from_id": "donki_umeda", "to_id": "hep5", "color": "#54A24B"}, {"order": 4, "emoji": "🚶", "mode": "도보", "time": "약 10~15분", "cost": "0엔", "from_id": "hep5", "to_id": "hotel", "color": "#B279A2"}, {"order": 5, "emoji": "🚇", "mode": "지하철", "time": "약 20~30분", "cost": "약 280엔", "from_id": "hotel", "to_id": "tsutenkaku", "color": "#9D755D"}, {"order": 6, "emoji": "🚶", "mode": "도보", "time": "약 25~35분", "cost": "0엔", "from_id": "tsutenkaku", "to_id": "dendentown", "color": "#72B7B2"}, {"order": 7, "emoji": "🚶", "mode": "도보", "time": "약 20~25분", "cost": "0엔", "from_id": "dendentown", "to_id": "dotonbori", "color": "#1f9d8a"}, {"order": 8, "emoji": "🚇", "mode": "지하철", "time": "약 20~25분", "cost": "약 280엔", "from_id": "dotonbori", "to_id": "back_umeda", "color": "#e76f51"}]}, "day3": {"name": "DAY 3 – 고베", "stops": [{"id": "umeda_start", "order": 1, "emoji": "🚉", "title": "梅田(우메다) / JR 大阪駅(오사카에키)", "lat": 34.7025, "lon": 135.4959, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🚉 1. 梅田(우메다) / JR 大阪駅(오사카에키)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Osaka%20Station%202023.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">오사카의 대표 교통 허브. JR 고베선 신쾌속으로 고베권 이동의 시작점.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "maiko", "order": 2, "emoji": "🌉", "title": "舞子(마이코) / 明石海峡大橋(아카시카이쿄오하시)", "lat": 34.6378, "lon": 135.0304, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌉 2. 舞子(마이코) / 明石海峡大橋(아카시카이쿄오하시)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Akashi_Kaikyo_Bridge\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Akashi-Kaikyo%20Bridge%20h008.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">세계적으로 유명한 현수교. 마이코 공원 해안 산책로에서 아래·옆·원경 뷰를 즐기기 좋음.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Akashi_Kaikyo_Bridge\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%95%84%EC%B9%B4%EC%8B%9C%20%ED%95%B4%ED%98%91%20%EB%8C%80%EA%B5%90\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%95%84%EC%B9%B4%EC%8B%9C%20%ED%95%B4%ED%98%91%20%EB%8C%80%EA%B5%90\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "sannomiya", "order": 3, "emoji": "🍜", "title": "三宮(산노미야)", "lat": 34.6941, "lon": 135.1956, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🍜 3. 三宮(산노미야)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Sannomiya_Station_(JR_West)\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Sannomiya_Station_001.JPG?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">고베 도심의 핵심 환승 거점. 점심/간식 및 지하철 이동의 중심.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Sannomiya_Station_(JR_West)\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%82%B0%EB%85%B8%EB%AF%B8%EC%95%BC\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%82%B0%EB%85%B8%EB%AF%B8%EC%95%BC\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "suzurannoyu", "order": 4, "emoji": "♨️", "title": "すずらんの湯(스즈란노유)", "lat": 34.686, "lon": 135.141, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">♨️ 4. すずらんの湯(스즈란노유)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Onsen\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Tsurunoyu%20onsen%20rotenburo.JPG?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">온천 휴식 구간(2시간 권장). 팝업 이미지는 ‘일본 노천온천’ 참고 이미지.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Onsen\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%8A%A4%EC%A6%88%EB%9E%80%EB%85%B8%EC%9C%A0\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%8A%A4%EC%A6%88%EB%9E%80%EB%85%B8%EC%9C%A0\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "shinkobe", "order": 5, "emoji": "🌿", "title": "新神戸(신코베) / 布引(누노비키) 로프웨이", "lat": 34.7056, "lon": 135.1951, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌿 5. 新神戸(신코베) / 布引(누노비키) 로프웨이</div>\n      <a href=\"https://en.wikipedia.org/wiki/Nunobiki_Herb_Garden\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Kobe%20Nunobiki%20Herb%20Garden%20Ropeway%20-%20panoramio.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">도심에서 바로 올라가는 로프웨이. 2월은 꽃보다 ‘시야·전망’이 강점(일몰~초야경 추천).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Nunobiki_Herb_Garden\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%88%84%EB%85%B8%EB%B9%84%ED%82%A4%20%ED%97%88%EB%B8%8C%EC%9B%90\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%88%84%EB%85%B8%EB%B9%84%ED%82%A4%20%ED%97%88%EB%B8%8C%EC%9B%90\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "harborland", "order": 6, "emoji": "🌃", "title": "ハーバーランド(하버랜드)", "lat": 34.6798, "lon": 135.1809, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌃 6. ハーバーランド(하버랜드)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Harborland_(Kobe)\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Kobe%20harborland08s3200.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">바다 산책 + 야경 마무리. 메리켄파크/포트타워 인근과 연결 동선이 좋음.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Harborland_(Kobe)\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EA%B3%A0%EB%B2%A0%20%ED%95%98%EB%B2%84%EB%9E%9C%EB%93%9C\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EA%B3%A0%EB%B2%A0%20%ED%95%98%EB%B2%84%EB%9E%9C%EB%93%9C\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "umeda_end", "order": 7, "emoji": "🏁", "title": "梅田(우메다) / JR 大阪駅(오사카에키)", "lat": 34.7025, "lon": 135.4959, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🏁 7. 梅田(우메다) / JR 大阪駅(오사카에키)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Osaka%20Station%202023.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">JR 신쾌속으로 귀환.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}], "segments": [{"order": 1, "emoji": "🚄", "mode": "JR 신쾌속", "time": "약 45분", "cost": "약 990엔", "from_id": "umeda_start", "to_id": "maiko", "color": "#4C78A8"}, {"order": 2, "emoji": "🚆", "mode": "JR 고베선", "time": "약 20분", "cost": "약 410엔", "from_id": "maiko", "to_id": "sannomiya", "color": "#F58518"}, {"order": 3, "emoji": "🚇", "mode": "지하철 + (역↔온천)", "time": "약 25~35분", "cost": "약 280엔(+셔틀 0엔/도보)", "from_id": "sannomiya", "to_id": "suzurannoyu", "color": "#54A24B"}, {"order": 4, "emoji": "🚇", "mode": "지하철", "time": "약 20~25분", "cost": "약 280엔", "from_id": "suzurannoyu", "to_id": "shinkobe", "color": "#B279A2"}, {"order": 5, "emoji": "🚶", "mode": "지하철/도보", "time": "약 15~20분", "cost": "약 240엔", "from_id": "shinkobe", "to_id": "harborland", "color": "#9D755D"}, {"order": 6, "emoji": "🚄", "mode": "JR 신쾌속", "time": "약 25~30분", "cost": "약 420엔", "from_id": "harborland", "to_id": "umeda_end", "color": "#72B7B2"}]}, "day2": {"name":"DAY 2 – 교토","stops":[{"id":"hotel_start","order":1,"emoji":"🏨","title":"Minn Umeda East(출발)","lat":34.700407,"lon":135.505369,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏨 1. Minn Umeda East(출발)\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e교토 데이트립 출발 지점.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Umeda\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"umeda_midosuji","order":2,"emoji":"🚇","title":"우메다역(미도스지선)","lat":34.7049,"lon":135.4983,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚇 2. 우메다역\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e미도스지선 승차 구간.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Umeda_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"minamigata","order":3,"emoji":"🚶","title":"니시나카지마미나미가타/한큐 미나미카타","lat":34.7256,"lon":135.5008,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚶 3. 환승 구간\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e지하철에서 한큐로 도보 환승.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Nishinakajima-Minamigata_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"katsura","order":4,"emoji":"🚃","title":"桂(가쓰라) 환승","lat":34.9836,"lon":135.6929,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚃 4. 桂(가쓰라)\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e아라시야마선 환승역.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Katsura_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"arashiyama","order":5,"emoji":"🌿","title":"嵐山・渡月橋(아라시야마/도게츠교)","lat":35.013,"lon":135.6778,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🌿 5. 아라시야마/도게츠교\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e오전 산책 핵심 구간.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Arashiyama\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"ryoanji","order":6,"emoji":"🪨","title":"龍安寺(료안지)","lat":35.0345,"lon":135.7182,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🪨 6. 료안지\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e란덴 하차 후 도보 접근이 필요한 구간.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Ry%C5%8Dan-ji\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kinkakuji","order":7,"emoji":"✨","title":"金閣寺(금각사)","lat":35.0394,"lon":135.7292,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e✨ 7. 금각사\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e료안지 이후 버스로 연결.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kinkaku-ji\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kitano","order":8,"emoji":"⛩️","title":"北野天満宮(기타노 텐만구)","lat":35.031,"lon":135.7356,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e⛩️ 8. 기타노 텐만구\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e택시로 빠르게 연결.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kitano_Tenmang%C5%AB\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"sannenzaka","order":9,"emoji":"🏮","title":"産寧坂(산넨자카)","lat":34.9988,"lon":135.7812,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏮 9. 산넨자카\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e청수사 전통거리 접근.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Sannenzaka\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kiyomizu","order":10,"emoji":"🏯","title":"清水寺(청수사)","lat":34.9949,"lon":135.785,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏯 10. 청수사\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e오후 핵심 관람지.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kiyomizu-dera\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kyoto_tower","order":11,"emoji":"🗼","title":"京都タワー(교토타워)","lat":34.9876,"lon":135.7594,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🗼 11. 교토타워\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e교토역권 마무리 전망.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kyoto_Tower\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"osaka_station","order":12,"emoji":"🚄","title":"JR 大阪駅(오사카역)","lat":34.7025,"lon":135.4959,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚄 12. JR 오사카역\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003eJR 귀환 도착 지점.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Osaka_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"hotel_end","order":13,"emoji":"🏁","title":"숙소 복귀","lat":34.700407,"lon":135.505369,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏁 13. 숙소 복귀\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003eDAY2 일정 종료.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Umeda\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"}],"segments":[{"order":1,"emoji":"🚶","mode":"도보","time":"약 10~15분","cost":"0엔","from_id":"hotel_start","to_id":"umeda_midosuji","color":"#4C78A8"},{"order":2,"emoji":"🚇","mode":"Osaka Metro 미도스지선","time":"약 5분","cost":"약 240엔","from_id":"umeda_midosuji","to_id":"minamigata","color":"#F58518"},{"order":3,"emoji":"🚃","mode":"한큐 교토선(환승)","time":"약 35~40분","cost":"약 240엔","from_id":"minamigata","to_id":"katsura","color":"#54A24B"},{"order":4,"emoji":"🚃","mode":"한큐 아라시야마선","time":"약 8분","cost":"약 120엔","from_id":"katsura","to_id":"arashiyama","color":"#B279A2"},{"order":5,"emoji":"🚋+🚶","mode":"란덴 하차 후 도보","time":"약 35~45분","cost":"약 250엔","from_id":"arashiyama","to_id":"ryoanji","color":"#9D755D"},{"order":6,"emoji":"🚌","mode":"교토 시내버스(고정)","time":"약 20분","cost":"230엔","from_id":"ryoanji","to_id":"kinkakuji","color":"#72B7B2"},{"order":7,"emoji":"🚕","mode":"택시(기본)","time":"약 15분","cost":"차량 약 1,200엔","from_id":"kinkakuji","to_id":"kitano","color":"#1f9d8a"},{"order":8,"emoji":"🚕","mode":"택시(기본)","time":"약 35분","cost":"차량 약 3,000~3,800엔","from_id":"kitano","to_id":"sannenzaka","color":"#e76f51"},{"order":9,"emoji":"🚶","mode":"도보","time":"약 25~35분","cost":"0엔","from_id":"sannenzaka","to_id":"kiyomizu","color":"#577590"},{"order":10,"emoji":"🚕","mode":"택시(기본)","time":"약 25~30분","cost":"차량 약 1,500~2,300엔","from_id":"kiyomizu","to_id":"kyoto_tower","color":"#43aa8b"},{"order":11,"emoji":"🚄","mode":"JR 교토선 신쾌속","time":"약 30분","cost":"약 580엔","from_id":"kyoto_tower","to_id":"osaka_station","color":"#f9844a"},{"order":12,"emoji":"🚕","mode":"택시(기본)","time":"약 20~25분","cost":"차량 약 1,000~1,600엔","from_id":"osaka_station","to_id":"hotel_end","color":"#277da1"}]}, "day4": {"name": "DAY 4 – 오사카?", "stops": [], "segments": []}, "day5": {"name": "DAY 5 – 귀국", "stops": [], "segments": []}};
+  const DAYS = {"day1": {"name": "DAY 1 – 오사카 입성", "stops": [{"id": "kix", "order": 1, "emoji": "🛬", "title": "関西国際空港(간사이 국제공항)", "lat": 34.4353, "lon": 135.244, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🛬 1. 関西国際空港(간사이 국제공항)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Kansai_International_Airport\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Kansai%20International%20Airport%20Terminal%201.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">입국 후 오사카(우메다)로 이동 시작.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Kansai_International_Airport\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EA%B0%84%EC%82%AC%EC%9D%B4%20%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EA%B0%84%EC%82%AC%EC%9D%B4%20%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n        <a href=\"https://www.kate.co.jp/kr/timetable/detail/UM\" target=\"_blank\" style=\"color:#7c3aed;\">🚌 KATE 탑승 위치·시간표(UM)</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "hankyu_sb", "order": 2, "emoji": "🚌", "title": "阪急三番街(한큐 삼번가) 하차", "lat": 34.7055, "lon": 135.4989, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🚌 2. 阪急三番街(한큐 삼번가) 하차</div>\n      <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Hankyu%20Sanbangai%20Osaka.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">리무진 버스 도착 지점(우메다).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%ED%95%9C%ED%81%90%20%EC%82%BC%EB%B2%88%EA%B0%80\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%ED%95%9C%ED%81%90%20%EC%82%BC%EB%B2%88%EA%B0%80\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "donki_umeda", "order": 3, "emoji": "🧳", "title": "ドン・キホーテ 梅田本店(돈키호테 우메다 본점)", "lat": 34.705, "lon": 135.5033, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🧳 3. ドン・キホーテ 梅田本店(돈키호테 우메다 본점)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Don_Quijote_(store)\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Don%20Quijote%20sign.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">라커에 짐 보관(가볍게 이동).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Don_Quijote_(store)\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%8F%88%ED%82%A4%ED%98%B8%ED%85%8C\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%8F%88%ED%82%A4%ED%98%B8%ED%85%8C\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "hep5", "order": 4, "emoji": "🎡", "title": "HEP FIVE 観覧車(햅파이브 관람차)", "lat": 34.7057, "lon": 135.5032, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🎡 4. HEP FIVE 観覧車(햅파이브 관람차)</div>\n      <a href=\"https://en.wikipedia.org/wiki/HEP_FIVE\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/HEP_FIVE_Ferris_wheel_Osaka.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">우메다 랜드마크 체험.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/HEP_FIVE\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/HEP%20FIVE\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=HEP%20FIVE\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "hotel", "order": 5, "emoji": "🏨", "title": "Minn Umeda East(민 유메다 이스트)", "lat": 34.700407, "lon": 135.505369, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🏨 5. Minn Umeda East(민 유메다 이스트)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Umeda%20Sky%20Building%20night.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">15:00 체크인(4박 5일 베이스).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/Minn%20Umeda%20East\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=Minn%20Umeda%20East\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "tsutenkaku", "order": 6, "emoji": "🗼", "title": "通天閣(츠텐카쿠)·新世界(신세카이)", "lat": 34.6525, "lon": 135.5063, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🗼 6. 通天閣(츠텐카쿠)·新世界(신세카이)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Ts%C5%ABtenkaku\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Tsutenkaku%20Osaka.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">오사카 남쪽 감성 포인트.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Ts%C5%ABtenkaku\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%B8%A0%ED%85%90%EC%B9%B4%EC%BF%A0\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%B8%A0%ED%85%90%EC%B9%B4%EC%BF%A0\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "dendentown", "order": 7, "emoji": "🕹️", "title": "でんでんタウン(덴덴타운)", "lat": 34.659, "lon": 135.5066, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🕹️ 7. でんでんタウン(덴덴타운)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Nipponbashi\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Nipponbashi%20Den%20Den%20Town.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">전자·서브컬처 거리.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Nipponbashi\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%8D%B4%EB%8D%B4%ED%83%80%EC%9A%B4\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%8D%B4%EB%8D%B4%ED%83%80%EC%9A%B4\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "dotonbori", "order": 8, "emoji": "🌈", "title": "道頓堀(도톤보리)", "lat": 34.6687, "lon": 135.5016, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌈 8. 道頓堀(도톤보리)</div>\n      <a href=\"https://en.wikipedia.org/wiki/D%C5%8Dtonbori\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Dotonbori%20at%20night.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">분위기 산책 후 우메다로 복귀.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/D%C5%8Dtonbori\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%8F%84%ED%86%A4%EB%B3%B4%EB%A6%AC\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%8F%84%ED%86%A4%EB%B3%B4%EB%A6%AC\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "back_umeda", "order": 9, "emoji": "🍻", "title": "梅田(우메다) 복귀·숙소 근처 마무리", "lat": 34.7025, "lon": 135.4959, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🍻 9. 梅田(우메다) 복귀·숙소 근처 마무리</div>\n      <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Osaka%20Station%202023.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">숙소 근처에서 포장/술 구매 후 숙소에서 휴식.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Umeda\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%9A%B0%EB%A9%94%EB%8B%A4\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%9A%B0%EB%A9%94%EB%8B%A4\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}], "segments": [{"order": 1, "emoji": "🚌", "mode": "리무진 버스", "time": "약 50~70분", "cost": "왕복 3,300엔(편도 1,650엔 가정)", "from_id": "kix", "to_id": "hankyu_sb", "color": "#4C78A8"}, {"order": 2, "emoji": "🚶", "mode": "도보", "time": "약 10~15분", "cost": "0엔", "from_id": "hankyu_sb", "to_id": "donki_umeda", "color": "#F58518"}, {"order": 3, "emoji": "🚶", "mode": "도보", "time": "약 5~10분", "cost": "0엔", "from_id": "donki_umeda", "to_id": "hep5", "color": "#54A24B"}, {"order": 4, "emoji": "🚶", "mode": "도보", "time": "약 10~15분", "cost": "0엔", "from_id": "hep5", "to_id": "hotel", "color": "#B279A2"}, {"order": 5, "emoji": "🚇", "mode": "지하철", "time": "약 20~30분", "cost": "약 280엔", "from_id": "hotel", "to_id": "tsutenkaku", "color": "#9D755D"}, {"order": 6, "emoji": "🚶", "mode": "도보", "time": "약 25~35분", "cost": "0엔", "from_id": "tsutenkaku", "to_id": "dendentown", "color": "#72B7B2"}, {"order": 7, "emoji": "🚶", "mode": "도보", "time": "약 20~25분", "cost": "0엔", "from_id": "dendentown", "to_id": "dotonbori", "color": "#1f9d8a"}, {"order": 8, "emoji": "🚇", "mode": "지하철", "time": "약 20~25분", "cost": "약 280엔", "from_id": "dotonbori", "to_id": "back_umeda", "color": "#e76f51"}]}, "day3": {"name": "DAY 3 – 고베", "stops": [{"id": "umeda_start", "order": 1, "emoji": "🚉", "title": "梅田(우메다) / JR 大阪駅(오사카에키)", "lat": 34.7025, "lon": 135.4959, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🚉 1. 梅田(우메다) / JR 大阪駅(오사카에키)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Osaka%20Station%202023.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">오사카의 대표 교통 허브. JR 고베선 신쾌속으로 고베권 이동의 시작점.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "maiko", "order": 2, "emoji": "🌉", "title": "舞子(마이코) / 明石海峡大橋(아카시카이쿄오하시)", "lat": 34.6378, "lon": 135.0304, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌉 2. 舞子(마이코) / 明石海峡大橋(아카시카이쿄오하시)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Akashi_Kaikyo_Bridge\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Akashi-Kaikyo%20Bridge%20h008.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">세계적으로 유명한 현수교. 마이코 공원 해안 산책로에서 아래·옆·원경 뷰를 즐기기 좋음.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Akashi_Kaikyo_Bridge\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%95%84%EC%B9%B4%EC%8B%9C%20%ED%95%B4%ED%98%91%20%EB%8C%80%EA%B5%90\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%95%84%EC%B9%B4%EC%8B%9C%20%ED%95%B4%ED%98%91%20%EB%8C%80%EA%B5%90\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "sannomiya", "order": 3, "emoji": "🍜", "title": "三宮(산노미야)", "lat": 34.6941, "lon": 135.1956, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🍜 3. 三宮(산노미야)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Sannomiya_Station_(JR_West)\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Sannomiya_Station_001.JPG?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">고베 도심의 핵심 환승 거점. 점심/간식 및 지하철 이동의 중심.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Sannomiya_Station_(JR_West)\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%82%B0%EB%85%B8%EB%AF%B8%EC%95%BC\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%82%B0%EB%85%B8%EB%AF%B8%EC%95%BC\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "suzurannoyu", "order": 4, "emoji": "♨️", "title": "すずらんの湯(스즈란노유)", "lat": 34.686, "lon": 135.141, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">♨️ 4. すずらんの湯(스즈란노유)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Onsen\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Tsurunoyu%20onsen%20rotenburo.JPG?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">온천 휴식 구간(2시간 권장). 팝업 이미지는 ‘일본 노천온천’ 참고 이미지.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Onsen\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%8A%A4%EC%A6%88%EB%9E%80%EB%85%B8%EC%9C%A0\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%8A%A4%EC%A6%88%EB%9E%80%EB%85%B8%EC%9C%A0\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n        <a href=\"https://gall.dcinside.com/mgallery/board/view/?id=jpnculture&no=14675\" target=\"_blank\" style=\"color:#7c3aed;\">📝 참고 리뷰(디시 갤러리)</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "shinkobe", "order": 5, "emoji": "🌿", "title": "新神戸(신코베) / 布引(누노비키) 로프웨이", "lat": 34.7056, "lon": 135.1951, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌿 5. 新神戸(신코베) / 布引(누노비키) 로프웨이</div>\n      <a href=\"https://en.wikipedia.org/wiki/Nunobiki_Herb_Garden\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Kobe%20Nunobiki%20Herb%20Garden%20Ropeway%20-%20panoramio.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">도심에서 바로 올라가는 로프웨이. 2월은 꽃보다 ‘시야·전망’이 강점(일몰~초야경 추천).</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Nunobiki_Herb_Garden\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EB%88%84%EB%85%B8%EB%B9%84%ED%82%A4%20%ED%97%88%EB%B8%8C%EC%9B%90\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EB%88%84%EB%85%B8%EB%B9%84%ED%82%A4%20%ED%97%88%EB%B8%8C%EC%9B%90\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "harborland", "order": 6, "emoji": "🌃", "title": "ハーバーランド(하버랜드)", "lat": 34.6798, "lon": 135.1809, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🌃 6. ハーバーランド(하버랜드)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Harborland_(Kobe)\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Kobe%20harborland08s3200.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">바다 산책 + 야경 마무리. 메리켄파크/포트타워 인근과 연결 동선이 좋음.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Harborland_(Kobe)\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EA%B3%A0%EB%B2%A0%20%ED%95%98%EB%B2%84%EB%9E%9C%EB%93%9C\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EA%B3%A0%EB%B2%A0%20%ED%95%98%EB%B2%84%EB%9E%9C%EB%93%9C\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}, {"id": "umeda_end", "order": 7, "emoji": "🏁", "title": "梅田(우메다) / JR 大阪駅(오사카에키)", "lat": 34.7025, "lon": 135.4959, "popup": "\n    <div style=\"width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;\">\n      <div style=\"font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;\">🏁 7. 梅田(우메다) / JR 大阪駅(오사카에키)</div>\n      <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"text-decoration:none;\">\n        <img src=\"https://commons.wikimedia.org/wiki/Special:FilePath/Osaka%20Station%202023.jpg?width=280\" style=\"width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);\" />\n      </a>\n      <div style=\"margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;\">JR 신쾌속으로 귀환.</div>\n      <div style=\"margin-top:8px; font-size:12px; display:flex; gap:10px; flex-wrap:wrap;\">\n        <a href=\"https://en.wikipedia.org/wiki/Osaka_Station\" target=\"_blank\" style=\"color:#2563eb;\">🔗 위키피디아(Wikipedia)</a>\n        <a href=\"https://namu.wiki/w/%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#16a34a;\">🌿 나무위키 바로가기</a>\n        <a href=\"https://namu.wiki/Search?q=%EC%98%A4%EC%82%AC%EC%B9%B4%EC%97%AD\" target=\"_blank\" style=\"color:#0f766e;\">🔎 나무위키 검색</a>\n      </div>\n      <div style=\"margin-top:6px; font-size:11.5px; color:#64748b;\">* 나무위키는 ‘바로가기’ 문서가 없으면 검색 링크를 쓰면 안전합니다.</div>\n    </div>\n    "}], "segments": [{"order": 1, "emoji": "🚄", "mode": "JR 신쾌속", "time": "약 45분", "cost": "약 990엔", "from_id": "umeda_start", "to_id": "maiko", "color": "#4C78A8"}, {"order": 2, "emoji": "🚆", "mode": "JR 고베선", "time": "약 20분", "cost": "약 410엔", "from_id": "maiko", "to_id": "sannomiya", "color": "#F58518"}, {"order": 3, "emoji": "🚇", "mode": "지하철 + (역↔온천)", "time": "약 25~35분", "cost": "약 280엔(+셔틀 0엔/도보)", "from_id": "sannomiya", "to_id": "suzurannoyu", "color": "#54A24B"}, {"order": 4, "emoji": "🚇", "mode": "지하철", "time": "약 20~25분", "cost": "약 280엔", "from_id": "suzurannoyu", "to_id": "shinkobe", "color": "#B279A2"}, {"order": 5, "emoji": "🚶", "mode": "지하철/도보", "time": "약 15~20분", "cost": "약 240엔", "from_id": "shinkobe", "to_id": "harborland", "color": "#9D755D"}, {"order": 6, "emoji": "🚄", "mode": "JR 신쾌속", "time": "약 25~30분", "cost": "약 420엔", "from_id": "harborland", "to_id": "umeda_end", "color": "#72B7B2"}]}, "day2": {"name":"DAY 2 – 교토","stops":[{"id":"hotel_start","order":1,"emoji":"🏨","title":"Minn Umeda East(출발)","lat":34.700407,"lon":135.505369,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏨 1. Minn Umeda East(출발)\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e교토 데이트립 출발 지점.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Umeda\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"umeda_midosuji","order":2,"emoji":"🚇","title":"우메다역(미도스지선)","lat":34.7049,"lon":135.4983,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚇 2. 우메다역\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e미도스지선 승차 구간.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Umeda_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"minamigata","order":3,"emoji":"🚶","title":"니시나카지마미나미가타/한큐 미나미카타","lat":34.7256,"lon":135.5008,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚶 3. 환승 구간\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e지하철에서 한큐로 도보 환승.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Nishinakajima-Minamigata_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"katsura","order":4,"emoji":"🚃","title":"桂(가쓰라) 환승","lat":34.9836,"lon":135.6929,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚃 4. 桂(가쓰라)\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e아라시야마선 환승역.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Katsura_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"arashiyama","order":5,"emoji":"🌿","title":"嵐山・渡月橋(아라시야마/도게츠교)","lat":35.013,"lon":135.6778,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🌿 5. 아라시야마/도게츠교\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e오전 산책 핵심 구간.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Arashiyama\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"ryoanji","order":6,"emoji":"🪨","title":"龍安寺(료안지)","lat":35.0345,"lon":135.7182,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🪨 6. 료안지\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e란덴 하차 후 도보 접근이 필요한 구간.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Ry%C5%8Dan-ji\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kinkakuji","order":7,"emoji":"✨","title":"金閣寺(금각사)","lat":35.0394,"lon":135.7292,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e✨ 7. 금각사\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e료안지 이후 버스로 연결.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kinkaku-ji\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kitano","order":8,"emoji":"⛩️","title":"北野天満宮(기타노 텐만구)","lat":35.031,"lon":135.7356,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e⛩️ 8. 기타노 텐만구\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e택시로 빠르게 연결.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kitano_Tenmang%C5%AB\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"sannenzaka","order":9,"emoji":"🏮","title":"産寧坂(산넨자카)","lat":34.9988,"lon":135.7812,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏮 9. 산넨자카\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e청수사 전통거리 접근.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Sannenzaka\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kiyomizu","order":10,"emoji":"🏯","title":"清水寺(청수사)","lat":34.9949,"lon":135.785,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏯 10. 청수사\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e오후 핵심 관람지.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kiyomizu-dera\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"kyoto_tower","order":11,"emoji":"🗼","title":"京都タワー(교토타워)","lat":34.9876,"lon":135.7594,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🗼 11. 교토타워\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003e교토역권 마무리 전망.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Kyoto_Tower\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"osaka_station","order":12,"emoji":"🚄","title":"JR 大阪駅(오사카역)","lat":34.7025,"lon":135.4959,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🚄 12. JR 오사카역\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003eJR 귀환 도착 지점.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Osaka_Station\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"},{"id":"hotel_end","order":13,"emoji":"🏁","title":"숙소 복귀","lat":34.700407,"lon":135.505369,"popup":"\u003cdiv style=\u0027width:260px;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Noto Sans KR\",Arial,sans-serif;\u0027\u003e\n  \u003cdiv style=\u0027font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;\u0027\u003e🏁 13. 숙소 복귀\u003c/div\u003e\n  \u003cdiv style=\u0027font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:8px;\u0027\u003eDAY2 일정 종료.\u003c/div\u003e\n  \u003ca href=\u0027https://en.wikipedia.org/wiki/Umeda\u0027 target=\u0027_blank\u0027 style=\u0027color:#2563eb;text-decoration:none;\u0027\u003e🔗 참고 링크\u003c/a\u003e\n\u003c/div\u003e"}],"segments":[{"order":1,"emoji":"🚶","mode":"도보","time":"약 10~15분","cost":"0엔","from_id":"hotel_start","to_id":"umeda_midosuji","color":"#4C78A8"},{"order":2,"emoji":"🚇","mode":"Osaka Metro 미도스지선","time":"약 5분","cost":"약 240엔","from_id":"umeda_midosuji","to_id":"minamigata","color":"#F58518"},{"order":3,"emoji":"🚃","mode":"한큐 교토선(환승)","time":"약 35~40분","cost":"약 240엔","from_id":"minamigata","to_id":"katsura","color":"#54A24B"},{"order":4,"emoji":"🚃","mode":"한큐 아라시야마선","time":"약 8분","cost":"약 120엔","from_id":"katsura","to_id":"arashiyama","color":"#B279A2"},{"order":5,"emoji":"🚋+🚶","mode":"란덴 하차 후 도보","time":"약 35~45분","cost":"약 250엔","from_id":"arashiyama","to_id":"ryoanji","color":"#9D755D"},{"order":6,"emoji":"🚌","mode":"교토 시내버스(고정)","time":"약 20분","cost":"230엔","from_id":"ryoanji","to_id":"kinkakuji","color":"#72B7B2"},{"order":7,"emoji":"🚕","mode":"택시(기본)","time":"약 15분","cost":"차량 약 1,200엔","from_id":"kinkakuji","to_id":"kitano","color":"#1f9d8a"},{"order":8,"emoji":"🚕","mode":"택시(기본)","time":"약 35분","cost":"차량 약 3,000~3,800엔","from_id":"kitano","to_id":"sannenzaka","color":"#e76f51"},{"order":9,"emoji":"🚶","mode":"도보","time":"약 25~35분","cost":"0엔","from_id":"sannenzaka","to_id":"kiyomizu","color":"#577590"},{"order":10,"emoji":"🚕","mode":"택시(기본)","time":"약 25~30분","cost":"차량 약 1,500~2,300엔","from_id":"kiyomizu","to_id":"kyoto_tower","color":"#43aa8b"},{"order":11,"emoji":"🚄","mode":"JR 교토선 신쾌속","time":"약 30분","cost":"약 580엔","from_id":"kyoto_tower","to_id":"osaka_station","color":"#f9844a"},{"order":12,"emoji":"🚕","mode":"택시(기본)","time":"약 20~25분","cost":"차량 약 1,000~1,600엔","from_id":"osaka_station","to_id":"hotel_end","color":"#277da1"}]}, "day4": {"name": "DAY 4 – 오사카?", "stops": [], "segments": []}, "day5": {"name": "DAY 5 – 귀국", "stops": [], "segments": []}};
 
   // Normalize Day1/Day2 popup template to match Day1/Day3 rich format.
   function buildRichPopup(title, desc, img, wiki, namuDirect, namuSearch) {
@@ -789,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', function() {
       { id: 'hotel_checkout', order: 1, emoji: '🏨', title: 'Minn Umeda East(체크아웃)', lat: 34.700407, lon: 135.505369,
         popup: `<div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;"><div style="font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;">🏨 1. 숙소 체크아웃</div><a href="https://en.wikipedia.org/wiki/Umeda" target="_blank" style="text-decoration:none;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Umeda_Sky_Building_2019.jpg/280px-Umeda_Sky_Building_2019.jpg" style="width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);" /></a><div style="margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;">귀국일 출발 준비 시작.</div></div>` },
       { id: 'hankyu_bus_stop', order: 2, emoji: '🚌', title: '阪急三番街(한큐3번가) 버스정류장', lat: 34.7055, lon: 135.4989,
-        popup: `<div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;"><div style="font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;">🚌 2. 한큐3번가 버스 탑승</div><a href="https://en.wikipedia.org/wiki/Umeda" target="_blank" style="text-decoration:none;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Umeda%2C_Osaka%2C_Japan_%282017%29.jpg/280px-Umeda%2C_Osaka%2C_Japan_%282017%29.jpg" style="width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);" /></a><div style="margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;">08:30 공항 리무진 탑승.</div></div>` },
+        popup: `<div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;"><div style="font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;">🚌 2. 한큐3번가 버스 탑승</div><a href="https://en.wikipedia.org/wiki/Umeda" target="_blank" style="text-decoration:none;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Umeda%2C_Osaka%2C_Japan_%282017%29.jpg/280px-Umeda%2C_Osaka%2C_Japan_%282017%29.jpg" style="width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);" /></a><div style="margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;">08:30 공항 리무진 탑승.</div><div style="margin-top:8px; font-size:12px;"><a href="https://www.kate.co.jp/kr/timetable/detail/UM" target="_blank" style="color:#2563eb;">🚌 KATE 한큐3번가 탑승 위치·시간표(UM)</a></div></div>` },
       { id: 'kix_t1', order: 3, emoji: '🛫', title: '関西国際空港 터미널1', lat: 34.4353, lon: 135.244,
         popup: `<div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto,'Noto Sans KR', Arial, sans-serif;"><div style="font-weight:900; font-size:14px; color:#111827; margin-bottom:6px;">🛫 3. 간사이공항 도착</div><a href="https://en.wikipedia.org/wiki/Kansai_International_Airport" target="_blank" style="text-decoration:none;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Kansai_International_Airport_Terminal_1.jpg/280px-Kansai_International_Airport_Terminal_1.jpg" style="width:100%; height:auto; border-radius:12px; border:1px solid rgba(0,0,0,0.10);" /></a><div style="margin-top:8px; font-size:12.5px; color:#374151; line-height:1.35;">09:30~10:00 도착 목표 구간.</div></div>` }
     ],
@@ -800,13 +1167,616 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   DAYS.visitjapan = { name: '입국 준비', stops: [], segments: [] };
   DAYS.cost = { name: '비용', stops: [], segments: [] };
+  DAYS.subway = { name: '오사카 지하철', stops: [], segments: [] };
+  const OSAKA_SUBWAY_DATA = [{"line":"미도스지선","color":"#E5171F","station":"에사카역(江坂駅)","description":"기타오사카 급행전철과의 직결 지점. 오피스 타운과 에사카 공원 인접. 1","address":"大阪府吹田市豊津町10-15 2","lat":34.7588,"lon":135.4967},{"line":"미도스지선","color":"#E5171F","station":"히가시미쿠니역(東三国駅)","description":"전형적인 주거 지역. 우메다 및 신오사카 통근자 밀집 지역. 3","address":"大阪府大阪市淀川区東三国2-37 2","lat":34.7423,"lon":135.4996},{"line":"미도스지선","color":"#E5171F","station":"신오사카역(新大阪駅)","description":"신칸센 연결점. \u0027신나니와 대식당\u0027 등 상업 시설 발달. 4","address":"大阪府大阪市淀川区西中島5-15-5 5","lat":34.7331,"lon":135.5003},{"line":"미도스지선","color":"#E5171F","station":"니시나카지마미나미가타역(西中島南方駅)","description":"한큐 교토선 환승 가능. 요도강 북쪽 비즈니스 호텔 밀집지. 1","address":"大阪府大阪市淀川区西中島1-14-25 2","lat":34.7266,"lon":135.5},{"line":"미도스지선","color":"#E5171F","station":"나카쓰역(中津駅)","description":"우메다 북측 재개발 지역. 옛 골목과 현대 빌딩 공존. 6","address":"大阪府大阪市北区中津1-13-18 7","lat":34.7111,"lon":135.4992},{"line":"미도스지선","color":"#E5171F","station":"우메다역(梅田駅)","description":"오사카 최대 허브. 그랜드 프론트 오사카 등 쇼핑몰 밀집. 4","address":"大阪府大阪市北区角田町8-47 5","lat":34.7025,"lon":135.4983},{"line":"미도스지선","color":"#E5171F","station":"요도야바시역(淀屋橋駅)","description":"행정 및 금융 중심지. 오사카 시청 및 나카노시마 공원 인접. 8","address":"大阪府大阪市中央区北浜3-1-20 9","lat":34.692,"lon":135.5004},{"line":"미도스지선","color":"#E5171F","station":"혼마치역(本町駅)","description":"3개 노선 교차 요충지. 선바 섬유 도매 거리의 핵심. 10","address":"大阪府大阪市中央구船場中央4-1-3 11","lat":34.6823,"lon":135.4998},{"line":"미도스지선","color":"#E5171F","station":"신사이바시역(心斎橋駅)","description":"패션의 중심. 신사이바시스지 상점가 및 아메리카무라 인접. 4","address":"大阪府大阪市中央区心斎橋筋1-8-16 11","lat":34.674,"lon":135.5002},{"line":"미도스지선","color":"#E5171F","station":"난바역(なんば駅)","description":"도톤보리와 난바 파크스 등 관광/엔터테인먼트 시설 밀집. 4","address":"大阪府大阪市中央区難波4-1-17 5","lat":34.6655,"lon":135.5011},{"line":"미도스지선","color":"#E5171F","station":"다이코쿠초역(大国町駅)","description":"요쓰바시선과 동일 승강장 환승 가능 전략적 요충지. 4","address":"大阪府大阪市浪速区敷津東3-11-10 11","lat":34.6596,"lon":135.4999},{"line":"미도스지선","color":"#E5171F","station":"도부쓰엔마에역(動物園前駅)","description":"덴노지 동물원 및 신세카이 관문. 쓰텐카쿠 타워 인접. 8","address":"大阪府大阪市西成区太子1-1 2","lat":34.6477,"lon":135.5041},{"line":"미도스지선","color":"#E5171F","station":"덴노지역(天王寺역)","description":"아베노 하루카스 및 덴노지 공원이 위치한 남부 핵심 허브. 4","address":"大阪府大阪市阿倍野区阿倍野筋1-1-48 5","lat":34.6472,"lon":135.5139},{"line":"미도스지선","color":"#E5171F","station":"쇼와초역(昭和町駅)","description":"조용한 주거 지역. 옛 가옥 개조 카페와 로컬 맛집 유명. 10","address":"大阪府大阪市阿倍野区昭和町1-21-25 9","lat":34.6366,"lon":135.5173},{"line":"미도스지선","color":"#E5171F","station":"니시타나베역(西田辺駅)","description":"샤프(Sharp) 발상지. 안정적인 주거 인프라 구축. 12","address":"大阪府大阪市阿倍野区西田辺町1-1-1 9","lat":34.622,"lon":135.5168},{"line":"미도스지선","color":"#E5171F","station":"나가이역(長居駅)","description":"나가이 공원과 얀마 스타디움. 팀랩 보태니컬 가든 전시. 10","address":"大阪府大阪市住吉区長居東4-4-15 2","lat":34.6125,"lon":135.5132},{"line":"미도스지선","color":"#E5171F","station":"아비코역(あびこ駅)","description":"대학가 인근 주거 지역. 저렴하고 다양한 로컬 식당 밀집. 13","address":"大阪府大阪市住吉区我孫子2-7-8 2","lat":34.6015,"lon":135.5126},{"line":"미도스지선","color":"#E5171F","station":"기타하나다역(北花田駅)","description":"사카이시 북부 상업지. 이온몰 기타하나다 역과 연결. 13","address":"大阪府堺市北区北花田町3-17-1 2","lat":34.5843,"lon":135.5169},{"line":"미도스지선","color":"#E5171F","station":"신카나오카역(新金岡駅)","description":"사카이시 대규모 단지 지역. 계획 도시 경관 및 공원 풍부. 12","address":"大阪府堺市北区新金岡町4-1-1 2","lat":34.5694,"lon":135.5218},{"line":"미도스지선","color":"#E5171F","station":"나카모즈역(なかもず駅)","description":"남쪽 종점. 난카이 및 센보쿠 고속철도 환승 거점. 14","address":"大阪府堺市北区中百舌鳥町2-196 9","lat":34.5568,"lon":135.5065},{"line":"다니마치선","color":"#522886","station":"다이니치역(大日駅)","description":"북쪽 종점. 오사카 모노레일 환승 및 이온몰 인접. 1","address":"大阪府守口市大日町1-1-18 2","lat":34.7478,"lon":135.5761},{"line":"다니마치선","color":"#522886","station":"모리구치역(守口駅)","description":"모리구치 시청 소재지. 게이한 전철 모리구치시역 인접. 12","address":"大阪府守口市京阪本通2-5-5 2","lat":34.7368,"lon":135.5619},{"line":"다니마치선","color":"#522886","station":"다이시바시이마이치역(太子橋今市역)","description":"이마자토스지선 환승 지점. 요도강 주변 주거 벨트. 1","address":"大阪府守口市京阪本通1-10-10 15","lat":34.7297,"lon":135.5539},{"line":"다니마치선","color":"#522886","station":"센바야시오미야역(千林大宮駅)","description":"센바야시 상점가 북측 입구. 서민적인 맛집 거리. 16","address":"大阪府大阪市旭区森小路2-8-20 15","lat":34.7214,"lon":135.5461},{"line":"다니마치선","color":"#522886","station":"세키메타카도노역(関目高殿駅)","description":"조용한 주택가. 지역 밀착형 상권 형성. 17","address":"大阪府大阪市城東区成育5-23-2 15","lat":34.7142,"lon":135.5453},{"line":"다니마치선","color":"#522886","station":"노에우친다이역(野江内代駅)","description":"JR 오사카 히가시선 노에역 인접. 교통 접근성 우수. 18","address":"大阪府大阪市都島区内代町1-7-25 15","lat":34.7078,"lon":135.5397},{"line":"다니마치선","color":"#522886","station":"미야코지마역(都島駅)","description":"미야코지마구 중심지. 대형 병원 및 고층 아파트 밀집. 1","address":"大阪府大阪市都島区都島本通3-23-10 2","lat":34.7031,"lon":135.5261},{"line":"다니마치선","color":"#522886","station":"텐진바시스지 록초메역(天神橋筋六丁目역)","description":"일본 최장 상점가 및 오사카 주택 박물관 직결. 4","address":"大阪府大阪市北区天神橋6-4-12 15","lat":34.7103,"lon":135.5117},{"line":"다니마치선","color":"#522886","station":"나카자키초역(中崎町駅)","description":"레트로 카페와 예술 공방 밀집. 젊은 층 인기 명소. 4","address":"大阪府大阪市北区中崎1-6-16 15","lat":34.7061,"lon":135.5064},{"line":"다니마치선","color":"#522886","station":"히가시우메다역(東梅田駅)","description":"우메다 동부 거점. 오사카역 앞 지하 상권 직결. 8","address":"大阪府大阪市北区曽根崎2-11-11 15","lat":34.7003,"lon":135.5003},{"line":"다니마치선","color":"#522886","station":"미나미모리마치역(南森町역)","description":"오사카 천만궁 신사 도보 거리. 사카이스지선 환승 가능. 4","address":"大阪府大阪市北区南森町2-1-20 2","lat":34.6983,"lon":135.5111},{"line":"다니마치선","color":"#522886","station":"덴마바시역(天満橋駅)","description":"게이한 환승 거점. 강변 공원 및 조폐국 벚꽃길 유명. 4","address":"大阪府大阪市中央区谷町1-3-2 15","lat":34.6897,"lon":135.5169},{"line":"다니마치선","color":"#522886","station":"다니마치 4초메역(谷町四丁目역)","description":"오사카성 및 역사 박물관 관문. 행정 기관 집중. 19","address":"大阪府大阪市中央区谷町4-1-15 15","lat":34.682,"lon":135.5167},{"line":"다니마치선","color":"#522886","station":"다니마치 6초메역(谷町六丁目역)","description":"카라호리 상점가 중심. 고풍스러운 편집샵 공존. 4","address":"大阪府大阪市中央区谷町6-3-26 15","lat":34.6744,"lon":135.5167},{"line":"다니마치선","color":"#522886","station":"다니마치 9초메역(谷町九丁目역)","description":"이쿠타마 신사 주변 종교 중심지. 긴테쓰 환승 가능. 1","address":"大阪府大阪市天王寺区生玉前町1-26 15","lat":34.6664,"lon":135.5167},{"line":"다니마치선","color":"#522886","station":"시텐노지마에 유히가오카역(四天王寺前夕陽ケ丘역)","description":"유서 깊은 시텐노지 사찰이 역사 바로 앞에 위치. 4","address":"大阪府大阪市天王寺区夕陽丘町1-1 15","lat":34.6583,"lon":135.515},{"line":"다니마치선","color":"#522886","station":"덴노지역(天王寺역)","description":"아베노 하루카스 관문. 남부 오사카 핵심 교통 허브. 4","address":"大阪府大阪市阿倍野区阿倍野筋1-1-48 15","lat":34.6472,"lon":135.5139},{"line":"다니마치선","color":"#522886","station":"아베노역(阿倍野駅)","description":"한카이 노면전차 환승 지점. 큐즈몰 등 상업 시설 발달. 12","address":"大阪府大阪市阿倍野区阿倍野筋3-10-1 2","lat":34.6436,"lon":135.5136},{"line":"다니마치선","color":"#522886","station":"후미노사토역(文の里駅)","description":"전통 주택가. 오사카 시내 우수 교육 환경 지역. 12","address":"大阪府大阪市阿倍野区昭和町1-1-1 2","lat":34.6369,"lon":135.5197},{"line":"다니마치선","color":"#522886","station":"다나베역(田辺駅)","description":"조용한 거주지. 로컬 신사와 공원 시설 완비. 12","address":"大阪府大阪市東住吉区田辺1-1-1 15","lat":34.6256,"lon":135.525},{"line":"다니마치선","color":"#522886","station":"고마가와나카노역(駒川中野역)","description":"고마가와 상점가 통로. 생활 밀착형 인프라 풍부. 12","address":"大阪府大阪市東住吉区駒川3-27-22 2","lat":34.6203,"lon":135.5331},{"line":"다니마치선","color":"#522886","station":"히라노역(平野駅)","description":"옛 가도의 역사적 마을. 센코지 등 문화유산 보존. 13","address":"大阪府大阪市平野区背戸口3-11-15 2","lat":34.6225,"lon":135.5483},{"line":"다니마치선","color":"#522886","station":"기레우리와리역(喜連瓜破駅)","description":"히라노구 핵심 상권. 전 역 스크린도어 설치 선도. 20","address":"大阪府大阪市平野区喜連2-1-1 2","lat":34.6106,"lon":135.55},{"line":"다니마치선","color":"#522886","station":"데토역(出戸駅)","description":"버스 터미널 및 이온몰 인접. 동부 교통 허브. 13","address":"大阪府大阪市平野区喜連東2-1-39 2","lat":34.6067,"lon":135.5647},{"line":"다니마치선","color":"#522886","station":"나가하라역(長原駅)","description":"주거 전용 지역. 평온한 거주 환경 및 학교 인접. 13","address":"大阪府大阪市平野区長吉長原1-2-45 2","lat":34.5972,"lon":135.5658},{"line":"다니마치선","color":"#522886","station":"야오미나미역(八尾南駅)","description":"남쪽 종점. 야오 공항 및 차량 기지 위치. 12","address":"大阪府八尾市若林町1-1 15","lat":34.5858,"lon":135.5661},{"line":"요쓰바시선","color":"#0078BE","station":"니시우메다역(西梅田駅)","description":"우메다 서부 관문. 고급 상업 시설 및 오피스 밀집. 8","address":"大阪府大阪市北区梅田2-2-25 15","lat":34.6997,"lon":135.4958},{"line":"요쓰바시선","color":"#0078BE","station":"히고바시역(肥後橋駅)","description":"언론사 및 법률 사무소 밀집. 오사카 과학관 인접. 4","address":"大阪府大阪市西区江戸堀1-13-10 2","lat":34.6908,"lon":135.4967},{"line":"요쓰바시선","color":"#0078BE","station":"혼마치역(本町駅)","description":"비즈니스 중심지. 주요 노선 환승 및 오피스 타운. 4","address":"大阪府大阪市中央区本町4-1-3 2","lat":34.6823,"lon":135.4998},{"line":"요쓰바시선","color":"#0078BE","station":"요쓰바시역(四ツ橋駅)","description":"호리에 지역 입구. 세련된 가구 거리와 패션샵. 4","address":"大阪府大阪市西区北堀江1-1-27 15","lat":34.6744,"lon":135.4975},{"line":"요쓰바시선","color":"#0078BE","station":"난바역(なん바駅)","description":"OCAT 및 JR 난바 인접. 미나토마치 리버 플레이스. 4","address":"大阪府大阪市中央区難波4-1-17 15","lat":34.6655,"lon":135.5011},{"line":"요쓰바시선","color":"#0078BE","station":"다이코쿠초역(大国町역)","description":"미도스지선과 평면 환승 가능. 남부 이동 편의성 극대화. 4","address":"大阪府大阪市浪速区敷津東3-11-10 15","lat":34.6596,"lon":135.4999},{"line":"요쓰바시선","color":"#0078BE","station":"하나조노초역(花園町駅)","description":"서민 주택가. 시내 접근성 좋은 가성비 주거지. 13","address":"大阪府大阪市西成区旭1-1-10 2","lat":34.6406,"lon":135.4967},{"line":"요쓰바시선","color":"#0078BE","station":"기시노사토역(岸里駅)","description":"니시나리 구청 소재 행정지. 평온한 비즈니스 구역. 13","address":"大阪府大阪市西成区岸里1-1-1 2","lat":34.6322,"lon":135.4947},{"line":"요쓰바시선","color":"#0078BE","station":"다마데역(玉出駅)","description":"대형 슈퍼마켓 및 로컬 시장 발달 생활 중심지. 10","address":"大阪府大阪市西成区玉出中2-1-25 15","lat":34.6247,"lon":135.4911},{"line":"요쓰바시선","color":"#0078BE","station":"기타카가야역(北加賀屋역)","description":"조선소 부지 예술 재생 지역. 벽화 및 갤러리 유명. 10","address":"大阪府大阪市住之江区北加賀屋2-11-15 2","lat":34.6208,"lon":135.4839},{"line":"요쓰바시선","color":"#0078BE","station":"스미노에 공원역(住之江公園駅)","description":"남쪽 종점 및 뉴트램 환승. 대형 공원과 경정장. 10","address":"大阪府大阪市住之江区泉1-1-1 15","lat":34.6092,"lon":135.4764},{"line":"주오선","color":"#019A66","station":"유메시마역(夢洲駅)","description":"2025 엑스포 관문. 인공섬 위 최첨단 역사. 21","address":"大阪府大阪市此花区夢洲1-1 22","lat":34.6547,"lon":135.39},{"line":"주오선","color":"#019A66","station":"코스모스퀘어역(コスモスクエア역)","description":"베이 에어리어 핵심 환승. 바다 전망 역사. 10","address":"大阪府大阪市住之江区南港北1-1-20 2","lat":34.6403,"lon":135.4147},{"line":"주오선","color":"#019A66","station":"오사카코역(大阪港駅)","description":"가이유칸 수족관 및 대관람차 관문. 항만 관광지. 10","address":"大阪府大阪市港区築港3-1-20 15","lat":34.6547,"lon":135.4328},{"line":"주오선","color":"#019A66","station":"아사시오바시역(朝潮橋駅)","description":"오사카 시립 중앙 체육관 인근 지상 역사. 13","address":"大阪府大阪市港区夕凪2-17-20 2","lat":34.6611,"lon":135.4508},{"line":"주오선","color":"#019A66","station":"벤텐초역(弁天町駅)","description":"JR 순환선 환승. 소라니와 온천 등 레저 시설 밀집. 10","address":"大阪府大阪市港区波除3-11-10 2","lat":34.6694,"lon":135.4622},{"line":"주오선","color":"#019A66","station":"구조역(九条駅)","description":"한신 환승 및 전통 아케이드 상점가 발달 지역. 10","address":"大阪府大阪市西区九条1-14-20 2","lat":34.6736,"lon":135.4744},{"line":"주오선","color":"#019A66","station":"아와자역(阿波座駅)","description":"센니치마에선 환승 및 세련된 맨션 단지 주거지. 10","address":"大阪府大阪市西区西본町3-1-1 2","lat":34.6811,"lon":135.4858},{"line":"주오선","color":"#019A66","station":"혼마치역(本町역)","description":"비즈니스 심장부. 미도스지 및 요쓰바시 연결 거점. 10","address":"大阪府大阪市中央区船場中央4-1-3 2","lat":34.6823,"lon":135.4998},{"line":"주오선","color":"#019A66","station":"사카이스지혼마치역(堺筋本町역)","description":"선바 센터 빌딩 지하 위치. 대규모 도매 시장. 10","address":"大阪府大阪市中央区船場中央1-4-3 15","lat":34.6825,"lon":135.5064},{"line":"주오선","color":"#019A66","station":"다니마치 4초메역(谷町四丁目역)","description":"오사카성 공원 서측 입구. 박물관 접근성 우수. 19","address":"大阪府大阪市中央区谷町4-1-15 15","lat":34.682,"lon":135.5167},{"line":"주오선","color":"#019A66","station":"모리노미야역(森ノ宮駅)","description":"JR 순환선 환승. 오사카성 공원 동측 관문. 10","address":"大阪府大阪市中央区森ノ宮中央1-1-45 2","lat":34.6822,"lon":135.5333},{"line":"주오선","color":"#019A66","station":"미도리바시역(緑橋역)","description":"주거 지역 역사. 이마자토스지선 환승 가능. 12","address":"大阪府大阪市東成구東中本1-14-15 2","lat":34.6821,"lon":135.545},{"line":"주오선","color":"#019A66","station":"후카에바시역(深江橋駅)","description":"공업 및 주거 혼재지. 풍부한 생활 편의 시설. 13","address":"大阪府大阪市東成区深江北1-1-25 2","lat":34.6806,"lon":135.5567},{"line":"주오선","color":"#019A66","station":"다카이다역(高井田駅)","description":"JR 오사카 히가시선 환승. 히가시오사카 공업 지원. 12","address":"大阪府東大阪市高井田本通1-1-1 15","lat":34.6792,"lon":135.5722},{"line":"주오선","color":"#019A66","station":"나가타역(長田駅)","description":"긴테쓰 직결 지점. 동부 광역 철도망 핵심 축. 23","address":"大阪府東大阪市長田中2-1-15 2","lat":34.6789,"lon":135.5925},{"line":"센니치마에선","color":"#E44D93","station":"노다한신역(野田阪神駅)","description":"한신 및 JR 환승 거점. 후쿠시마구 교통 허브. 1","address":"大阪府大阪市福島区大開1-14-18 2","lat":34.6936,"lon":135.4747},{"line":"센니치마에선","color":"#E44D93","station":"다마가와역(玉川駅)","description":"중앙 도매 시장 인접. 신선 수산물 상권 발달. 4","address":"大阪府大阪市福島区吉野2-15-10 2","lat":34.6881,"lon":135.4764},{"line":"센니치마에선","color":"#E44D93","station":"아와자역(阿波座역)","description":"주오선 환승 및 조용한 비즈니스/주거 구역. 14","address":"大阪府大阪市西区西본町3-1-1 2","lat":34.6811,"lon":135.4858},{"line":"센니치마에선","color":"#E44D93","station":"니시나가호리역(西長堀駅)","description":"도서관 및 공원 구비 고급 주거지. 2개 노선 환승. 1","address":"大阪府大阪市西区北堀江3-12-20 15","lat":34.6747,"lon":135.4878},{"line":"센니치마에선","color":"#E44D93","station":"사쿠라가와역(桜川駅)","description":"한신 및 난카이 환승 가능. 라이브 클럽 밀집지. 24","address":"大阪府大阪市浪速区桜川2-1-1 15","lat":34.6681,"lon":135.4914},{"line":"센니치마에선","color":"#E44D93","station":"난바역(なんば역)","description":"엔터테인먼트 중심. 난바 그랜드 카게츠 인접. 4","address":"大阪府大阪市中央区難波4-1-17 5","lat":34.6655,"lon":135.5011},{"line":"센니치마에선","color":"#E44D93","station":"니혼바시역(日本橋駅)","description":"구로몬 시장 및 국립 분라쿠 극장 상업 접점. 4","address":"大阪府大阪市中央区日本橋1-13-14 2","lat":34.6672,"lon":135.5064},{"line":"센니치마에선","color":"#E44D93","station":"다니마치 9초메역(谷町九丁目역)","description":"고대 역사 사찰 밀집 언덕 위 위치 역사. 1","address":"大阪府大阪市天王寺区生玉前町1-26 15","lat":34.6664,"lon":135.5167},{"line":"센니치마에선","color":"#E44D93","station":"쓰루하시역(鶴橋역)","description":"야키니쿠 거리 및 코리아타운 상권 환승지. 4","address":"大阪府大阪市天王寺区下味原町1-1 2","lat":34.6653,"lon":135.53},{"line":"센니치마에선","color":"#E44D93","station":"이마자토역(今里역)","description":"이마자토 라이너 BRT 노드 주거 밀집지. 1","address":"大阪府大阪市東成区大今里3-16-15 2","lat":34.6661,"lon":135.5458},{"line":"센니치마에선","color":"#E44D93","station":"신후카에역(新深江駅)","description":"동부 오사카 로컬 상점 산재 조용한 주거지. 25","address":"大阪府大阪市東成区神路4-11-20 15","lat":34.6681,"lon":135.5564},{"line":"센니치마에선","color":"#E44D93","station":"쇼지역(小路駅)","description":"전통 가옥 보존된 주거 전용 구역 역사. 25","address":"大阪府大阪市生野区小路2-24-25 15","lat":34.6617,"lon":135.5578},{"line":"센니치마에선","color":"#E44D93","station":"기타타쓰미역(北巽역)","description":"다문화 융합 지역 중심 교통 거점 역사. 26","address":"大阪府大阪市生野区巽北3-15-25 2","lat":34.6508,"lon":135.5564},{"line":"센니치마에선","color":"#E44D93","station":"미나미타쓰미역(南巽역)","description":"동남쪽 종착역. 물류 창고 및 공원 시설 인접. 16","address":"大阪府大阪市生野区巽南3-12-25 2","lat":34.6394,"lon":135.5561},{"line":"사카이스지선","color":"#814721","station":"텐진바시스지 록초메역(天神橋筋六丁目역)","description":"한큐 직결 및 텐진바시 상점가 투어 시작점. 1","address":"大阪府大阪市北区天神橋6-4-12 15","lat":34.7103,"lon":135.5117},{"line":"사카이스지선","color":"#814721","station":"오기마치역(扇町駅)","description":"키즈 플라자 및 대형 가족 공원 인접. 4","address":"大阪府大阪市北区末広町2-1 2","lat":34.7047,"lon":135.5117},{"line":"사카이스지선","color":"#814721","station":"미나미모리마치역(南森町역)","description":"라쿠고 극장 한조테이 및 다니마치선 환승. 4","address":"大阪府大阪市北区南森町2-1-20 2","lat":34.6983,"lon":135.5111},{"line":"사카이스지선","color":"#814721","station":"기타하마역(北浜駅)","description":"금융가 및 레트로 건축물. 나카노시마 공원 인근. 4","address":"大阪府大阪市中央区北浜1-8-16 2","lat":34.6908,"lon":135.5067},{"line":"사카이스지선","color":"#814721","station":"사카이스지혼마치역(堺筋本町역)","description":"주오선 환승 및 대규모 의류 도매 시장 역사. 4","address":"大阪府大阪市中央区船場中央1-4-3 15","lat":34.6825,"lon":135.5064},{"line":"사카이스지선","color":"#814721","station":"나가호리바시역(長堀橋역)","description":"환승지 및 도톤보리 뒤편 조용한 상권 연결. 4","address":"大阪府大阪市中央区島之内1-18-12 2","lat":34.6744,"lon":135.5064},{"line":"사카이스지선","color":"#814721","station":"니혼바시역(日本橋역)","description":"오타 로드 및 디지털 문화 성지 인접 거점. 4","address":"大阪府大阪市中央区日本橋1-13-14 2","lat":34.6672,"lon":135.5064},{"line":"사카이스지선","color":"#814721","station":"에비스초역(恵美須町역)","description":"쓰텐카쿠 타워 최단 거리 로컬 맛집 거리. 4","address":"大阪府大阪市浪속区日本橋5-5-2 2","lat":34.6567,"lon":135.5058},{"line":"사카이스지선","color":"#814721","station":"도부쓰엔마에역(動物園前역)","description":"신세카이 잔잔 요코초 관문 환승 거점. 4","address":"大阪府大阪市西成区太子1-1 2","lat":34.6477,"lon":135.5041},{"line":"사카이스지선","color":"#814721","station":"텐가차야역(天下茶屋駅)","description":"남쪽 종착역. 난카이 환승 간사이 공항 연결. 14","address":"大阪府大阪市西成区岸里東1-1-15 2","lat":34.6369,"lon":135.5003},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"다이쇼역(大정駅)","description":"JR 환승 및 오키나와 요리 상권 발달지. 4","address":"大阪府大阪市大正区三軒家東1-1-1 2","lat":34.6653,"lon":135.4803},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"돔마에 지요자키역(ドーム前千代崎역)","description":"쿄세라 돔 및 이온몰 직결 행사 중추 역사. 4","address":"大阪府大阪市西区千代崎3-1-1 2","lat":34.6697,"lon":135.4797},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"니시나가호리역(西長堀역)","description":"시립 중앙 도서관 위치 지적 교류 거점. 1","address":"大阪府大阪市西区北堀江3-12-20 15","lat":34.6747,"lon":135.4878},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"니시오하시역(西大橋駅)","description":"호리에 카페 거리 인근 조용한 비즈니스 구역. 13","address":"大阪府大阪市西区新町1-27-2 15","lat":34.6747,"lon":135.4925},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"신사이바시역(心斎橋역)","description":"미도스지 및 요쓰바시 연결 명품 거리 접점. 4","address":"大阪府大阪市中央区心斎橋筋1-8-16 11","lat":34.674,"lon":135.5002},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"나가호리바시역(長堀橋역)","description":"크리스타 나가호리 지하 상가 핵심 지점. 4","address":"大阪府大阪市中央区島之内1-18-12 2","lat":34.6744,"lon":135.5064},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"마쓰야마치역(松屋町駅)","description":"인형 및 과자 도매상 \u0027맛차마치\u0027 거리 유명. 4","address":"大阪府大阪市中央区松屋町1-1 2","lat":34.675,"lon":135.5122},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"다니마치 6초메역(谷町六丁目역)","description":"역사적 카라호리 지역 주요 접근 역사. 4","address":"大阪府大阪市中央区谷町6-3-26 15","lat":34.6744,"lon":135.5167},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"다마쓰쿠리역(玉造駅)","description":"고대 유적지 산재한 JR 환승 가능 역사. 1","address":"大阪府大阪市天王寺区玉造元町1-10 2","lat":34.6739,"lon":135.5331},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"모리노미야역(森ノ宮역)","description":"오사카성 공원의 숲 조망 가능한 환승 거점. 19","address":"大阪府大阪市中央区森ノ宮中央1-1-45 2","lat":34.6822,"lon":135.5333},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"오사카 비즈니스 파크역(大阪ビジネスパーク역)","description":"수변 도시 비즈니스 단지 내 현대적 역사. 10","address":"大阪府大阪市中央区城見1-3-2 15","lat":34.6917,"lon":135.5344},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"교바시역(京橋駅)","description":"동부 최대 번화가 및 맛집 거리 환승 거점. 4","address":"大阪府大阪市都島区東野田町2-1-38 2","lat":34.6972,"lon":135.5331},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"가모 4초메역(蒲生四丁目역)","description":"고가옥 재생 식당 유명한 이마자토스지 환승지. 4","address":"大阪府大阪市城東区今福西3-2-24 15","lat":34.7003,"lon":135.5458},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"이마후쿠쓰루미역(今福鶴見역)","description":"쇼핑 및 주거 단지 조화로운 동북부 거점. 25","address":"大阪府大阪市城東区今福東1-14-15 15","lat":34.7022,"lon":135.5564},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"요코즈쓰미역(横堤駅)","description":"쓰루미 구청 소재지 및 공원 인프라 풍부. 16","address":"大阪府大阪市鶴見区横堤5-1-1 15","lat":34.7053,"lon":135.5728},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"쓰루미 료쿠치역(鶴見緑地駅)","description":"90년 꽃 박람회 부지 녹지 공원 입구. 4","address":"大阪府大阪市鶴見区浜1-1-1 9","lat":34.7103,"lon":135.5867},{"line":"나가호리쓰루미료쿠치선","color":"#A9CC51","station":"가도마미나미역(門真南駅)","description":"동쪽 종점. 스포츠 시설 및 아웃렛 인접. 12","address":"大阪府門真市三ツ島3-14-1 2","lat":34.7125,"lon":135.6025},{"line":"이마자토스지선","color":"#EE7B1A","station":"이타카노역(井高野駅)","description":"북쪽 종점. 평온한 대규모 주택 단지 위치. 12","address":"大阪府大阪市東淀川区井高野4-1-65 2","lat":34.7578,"lon":135.5458},{"line":"이마자토스지선","color":"#EE7B1A","station":"즈이코 4초메역(瑞光四丁目역)","description":"오사카 경제대학 인접 활기찬 대학가 역사. 16","address":"大阪府大阪市東淀川区瑞光4-1-15 15","lat":34.7492,"lon":135.5436},{"line":"이마자토스지선","color":"#EE7B1A","station":"다이도토요사토역(だいどう豊里역)","description":"요도강 북측 주거 중심 및 강변 산책로. 13","address":"大阪府大阪市東淀川区豊里7-30-15 2","lat":34.7411,"lon":135.5414},{"line":"이마자토스지선","color":"#EE7B1A","station":"다이시바시이마이치역(太子橋今市역)","description":"다니마치선 환승 가능 주거/상업 혼재지. 1","address":"大阪府守口市京阪本通1-10-10 15","lat":34.7297,"lon":135.5539},{"line":"이마자토스지선","color":"#EE7B1A","station":"시미즈역(清水駅)","description":"히가시나리구 조용한 주택가 및 공원 인접. 27","address":"大阪府大阪市旭区清水4-1-10 15","lat":34.7216,"lon":135.5608},{"line":"이마자토스지선","color":"#EE7B1A","station":"신모리후루이치역(新森古市역)","description":"쓰루미 료쿠치 서측 인근 고선호 주거지. 16","address":"大阪府大阪市城東区古市3-15-10 15","lat":34.7114,"lon":135.5567},{"line":"이마자토스지선","color":"#EE7B1A","station":"세키메 세이이쿠역(関目成育駅)","description":"복층 구조 인상적 게이한 전철 환승 역사. 1","address":"大阪府大阪市城東区成育5-23-2 15","lat":34.7125,"lon":135.5419},{"line":"이마자토스지선","color":"#EE7B1A","station":"가모 4초메역(蒲生四丁目역)","description":"옛 정취 간직한 주택가 및 2개 노선 환승. 4","address":"大阪府大阪市城東区今福西3-2-24 15","lat":34.7003,"lon":135.5458},{"line":"이마자토스지선","color":"#EE7B1A","station":"시기노역(鴫野駅)","description":"JR 등 다수 노선 환승 가능한 멀티 역세권. 24","address":"大阪府大阪市城東区鴫野西5-1-20 15","lat":34.6931,"lon":135.5453},{"line":"이마자토스지선","color":"#EE7B1A","station":"미도리바시역(緑橋역)","description":"주오선 환승 및 주거 상업 혼재 벨트 역사. 12","address":"大阪府大阪市東成区東中본1-14-15 2","lat":34.6821,"lon":135.545},{"line":"이마자토스지선","color":"#EE7B1A","station":"이마자토역(今里역)","description":"남쪽 종점. 센니치마에 환승 및 BRT 연결. 1","address":"大阪府大阪市東成区大今里3-16-15 2","lat":34.6661,"lon":135.5458},{"line":"뉴트램","color":"#00A0DE","station":"코스모스퀘어역(コス모스크에아역)","description":"워터프런트 개발 핵심이자 주오선 환승점. 10","address":"大阪府大阪市住之江区南港北1-1-20 2","lat":34.6403,"lon":135.4147},{"line":"뉴트램","color":"#00A0DE","station":"트레이드센터 마에역(トレードセンター前역)","description":"코스모 타워 전망대 및 ATC 쇼핑몰 직결. 10","address":"大阪府大阪市住之江区南港北2-1-10 15","lat":34.6381,"lon":135.4114},{"line":"뉴트램","color":"#00A0DE","station":"나카후토역(中ふ頭駅)","description":"인텍스 오사카 전시장 관문 국제 행사 중심. 4","address":"大阪府大阪市住之江区南港中2-1-15 2","lat":34.6342,"lon":135.4214},{"line":"뉴트램","color":"#00A0DE","station":"포트타운 니시역(ポートタウン西역)","description":"난코 대규모 주거 단지 중심 위치 역사. 3","address":"大阪府大阪市住之江区南항中3-2-20 15","lat":34.6308,"lon":135.4244},{"line":"뉴트램","color":"#00A0DE","station":"포트타운 히가시역(ポートタウン東역)","description":"쇼핑 센터와 공원 인근 높은 생활 편의성. 3","address":"大阪府大阪市住之江区南항中2-1-10 15","lat":34.63,"lon":135.4317},{"line":"뉴트램","color":"#00A0DE","station":"페리 터미널역(フェリーターミナル역)","description":"규슈 등 대형 페리 선착장 연결 항만 거점. 13","address":"大阪府大阪市住之江区南港東9-1-10 2","lat":34.6247,"lon":135.4344},{"line":"뉴트램","color":"#00A0DE","station":"난코 히가시역(南港東駅)","description":"물류 및 공장 지대 인접 산업 지원 역사. 3","address":"大阪府大阪市住之江区南港東4-1-15 15","lat":34.6214,"lon":135.4414},{"line":"뉴트램","color":"#00A0DE","station":"난코구치역(南港口駅)","description":"항만 하역 및 사무실 단지 밀집 교통 거점. 3","address":"大阪府大阪市住之江구南港東2-1-25 15","lat":34.6167,"lon":135.4517},{"line":"뉴트램","color":"#00A0DE","station":"히라바야시역(平林駅)","description":"목재 단지 및 창고 지역 통과 주거 상업지. 13","address":"大阪府大阪市住之江区平林北1-1-10 2","lat":34.6119,"lon":135.4628},{"line":"뉴트램","color":"#00A0DE","station":"스미노에 공원역(住之江公園駅)","description":"요쓰바시선 환승 및 대형 스포츠/공원 역사. 10","address":"大阪府大阪市住之江区泉1-1-1 15","lat":34.6092,"lon":135.4764}];
+
+    const FOOD_IMAGE_DATA = {};
+
+  const FOOD_FILE_NAMES = [];
+
+  const rightPanel = document.querySelector('.panel.right');
+  const mapFrame = document.getElementById('mapFrame');
+  const legendCard = document.getElementById('legendCard');
+  const mapPanel = document.getElementById('mapPanel');
+  const mapFullscreenBtn = document.getElementById('mapFullscreenBtn');
+  const mapLayerStreetBtn = document.getElementById('mapLayerStreetBtn');
+  const mapLayerSatelliteBtn = document.getElementById('mapLayerSatelliteBtn');
+  const mapLayerSubwayBtn = document.getElementById('mapLayerSubwayBtn');
+  let lastMode = 'portrait';
+  let subwayLayerVisible = false;
+  const mapLightboxState = {
+    isFullscreen: false,
+    isFallbackFullscreen: false
+  };
+
+  const foodLightbox = document.getElementById('foodImageLightbox');
+  const foodLightboxBackdrop = document.getElementById('foodLightboxBackdrop');
+  const foodLightboxImage = document.getElementById('foodLightboxImage');
+  const foodLightboxClose = document.getElementById('foodLightboxClose');
+  const foodLightboxZoomIn = document.getElementById('foodLightboxZoomIn');
+  const foodLightboxZoomOut = document.getElementById('foodLightboxZoomOut');
+  const foodLightboxReset = document.getElementById('foodLightboxZoomReset');
+  const foodLightboxScale = document.getElementById('foodLightboxScale');
+  const foodLightboxMediaWrap = document.getElementById('foodLightboxMediaWrap');
+  const foodLightboxCaption = document.getElementById('foodLightboxCaption');
+  const foodViewerState = { scale: 1, x: 0, y: 0, minScale: 1, maxScale: 8 };
+
+  function buildFoodTopics() {
+    const groups = new Map();
+    FOOD_FILE_NAMES.forEach((fileName) => {
+      const stem = fileName.replace(/\.[^.]+$/, '').replace(/^일본\s*/, '').replace(/\s+/g, ' ').trim();
+      const topic = (stem.replace(/\s*\d+\s*$/, '').trim() || stem);
+      const m = stem.match(/(\d+)\s*$/);
+      const num = m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+      if (!groups.has(topic)) groups.set(topic, []);
+      groups.get(topic).push({
+        fileName,
+        stem,
+        number: num,
+        image: FOOD_IMAGE_DATA[fileName]
+      });
+    });
+
+    const topics = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'ko'));
+    return topics.map((topic) => ({
+      topic,
+      items: groups.get(topic).sort((a, b) => (a.number - b.number) || a.stem.localeCompare(b.stem, 'ko'))
+    }));
+  }
+
+  function closeMapFullscreen() {
+    if (!mapPanel) return;
+    if (document.fullscreenElement === mapPanel) {
+      document.exitFullscreen().catch(() => {});
+    }
+    mapPanel.classList.remove('fullscreen-fallback');
+    if (mapFullscreenBtn) {
+      mapFullscreenBtn.textContent = '지도 전체화면';
+      mapFullscreenBtn.setAttribute('aria-pressed', 'false');
+      mapFullscreenBtn.setAttribute('aria-label', '지도 전체화면 켜기');
+    }
+    mapLightboxState.isFullscreen = false;
+    mapLightboxState.isFallbackFullscreen = false;
+    setTimeout(refreshMap, 120);
+  }
+
+  function openMapFallbackFullscreen() {
+    if (!mapPanel) return;
+    mapPanel.classList.add('fullscreen-fallback');
+    if (mapFullscreenBtn) {
+      mapFullscreenBtn.textContent = '지도 전체화면 종료';
+      mapFullscreenBtn.setAttribute('aria-pressed', 'true');
+      mapFullscreenBtn.setAttribute('aria-label', '지도 전체화면 종료');
+    }
+    mapLightboxState.isFullscreen = true;
+    mapLightboxState.isFallbackFullscreen = true;
+    setTimeout(refreshMap, 120);
+  }
+
+  function toggleMapFullscreen() {
+    if (!mapPanel || !mapFullscreenBtn) return;
+    if (mapLightboxState.isFullscreen) {
+      closeMapFullscreen();
+      return;
+    }
+    if (document.fullscreenEnabled && mapPanel.requestFullscreen) {
+      mapPanel.requestFullscreen().then(() => {
+        mapLightboxState.isFullscreen = true;
+        mapFullscreenBtn.textContent = '지도 전체화면 종료';
+        mapFullscreenBtn.setAttribute('aria-pressed', 'true');
+        mapFullscreenBtn.setAttribute('aria-label', '지도 전체화면 종료');
+      }).catch(() => {
+        openMapFallbackFullscreen();
+      });
+      return;
+    }
+    openMapFallbackFullscreen();
+  }
+
+  function updateFoodLightboxTransform() {
+    if (!foodLightboxImage || !foodLightboxMediaWrap) return;
+    const clampedScale = Math.min(foodViewerState.maxScale, Math.max(foodViewerState.minScale, foodViewerState.scale));
+    foodViewerState.scale = clampedScale;
+    if (foodLightboxScale) foodLightboxScale.textContent = `${Math.round(clampedScale * 100)}%`;
+    foodLightboxImage.style.width = `${Math.max(100, clampedScale * 100)}%`;
+    foodLightboxImage.style.transform = 'none';
+  }
+
+  function openFoodLightbox(src, altText, captionText) {
+    if (!foodLightboxImage || !foodLightbox || !foodLightboxMediaWrap) return;
+    foodLightboxImage.src = src;
+    foodLightboxImage.alt = altText || '';
+    if (foodLightboxCaption) foodLightboxCaption.textContent = captionText || altText || '';
+    foodLightbox.classList.add('is-open');
+    foodLightbox.setAttribute('aria-hidden', 'false');
+    foodViewerState.scale = 1;
+    foodViewerState.x = 0;
+    foodViewerState.y = 0;
+    updateFoodLightboxTransform();
+    foodLightboxMediaWrap.scrollTop = 0;
+    foodLightboxMediaWrap.scrollLeft = 0;
+  }
+
+  function closeFoodLightbox() {
+    if (!foodLightbox) return;
+    foodLightbox.classList.remove('is-open');
+    foodLightbox.setAttribute('aria-hidden', 'true');
+    if (foodLightboxImage) {
+      foodLightboxImage.src = '';
+      foodLightboxImage.style.width = '100%';
+      foodLightboxImage.style.transform = 'none';
+    }
+  }
+
+  function adjustFoodLightboxScale(delta, centerX, centerY) {
+    if (!foodLightboxMediaWrap) return;
+    const prevScale = foodViewerState.scale;
+    const nextScale = Math.max(foodViewerState.minScale, Math.min(foodViewerState.maxScale, foodViewerState.scale * delta));
+    if (!Number.isFinite(nextScale) || nextScale === prevScale) return;
+
+    const rect = foodLightboxMediaWrap.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      foodViewerState.scale = nextScale;
+      updateFoodLightboxTransform();
+      return;
+    }
+    const cx = typeof centerX === 'number' ? centerX : rect.width / 2;
+    const cy = typeof centerY === 'number' ? centerY : rect.height / 2;
+    const contentX = (foodLightboxMediaWrap.scrollLeft + cx) / prevScale;
+    const contentY = (foodLightboxMediaWrap.scrollTop + cy) / prevScale;
+
+    foodViewerState.scale = nextScale;
+    updateFoodLightboxTransform();
+    requestAnimationFrame(() => {
+      foodLightboxMediaWrap.scrollLeft = Math.max(0, contentX * nextScale - cx);
+      foodLightboxMediaWrap.scrollTop = Math.max(0, contentY * nextScale - cy);
+      limitFoodPan();
+    });
+  }
+
+  function limitFoodPan() {
+    if (!foodLightboxMediaWrap || !foodLightboxImage) return;
+    const maxX = Math.max(0, foodLightboxMediaWrap.scrollWidth - foodLightboxMediaWrap.clientWidth);
+    const maxY = Math.max(0, foodLightboxMediaWrap.scrollHeight - foodLightboxMediaWrap.clientHeight);
+    foodLightboxMediaWrap.scrollLeft = Math.max(0, Math.min(maxX, foodLightboxMediaWrap.scrollLeft));
+    foodLightboxMediaWrap.scrollTop = Math.max(0, Math.min(maxY, foodLightboxMediaWrap.scrollTop));
+  }
+
+  function bindFoodLightboxInteractions() {
+    if (!foodLightbox) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startScale = 1;
+    let startDistance = 0;
+
+    foodLightboxBackdrop.addEventListener('click', closeFoodLightbox);
+    foodLightboxClose.addEventListener('click', closeFoodLightbox);
+    foodLightboxZoomIn.addEventListener('click', () => adjustFoodLightboxScale(1.2));
+    foodLightboxZoomOut.addEventListener('click', () => adjustFoodLightboxScale(0.8));
+    foodLightboxReset.addEventListener('click', () => {
+      foodViewerState.scale = 1;
+      foodViewerState.x = 0;
+      foodViewerState.y = 0;
+      updateFoodLightboxTransform();
+      if (foodLightboxMediaWrap) {
+        foodLightboxMediaWrap.scrollTop = 0;
+        foodLightboxMediaWrap.scrollLeft = 0;
+      }
+    });
+
+    foodLightboxMediaWrap.addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const rect = foodLightboxMediaWrap.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      adjustFoodLightboxScale(e.deltaY < 0 ? 1.15 : 0.88, cx, cy);
+    }, { passive: false });
+
+    foodLightboxMediaWrap.addEventListener('dblclick', (e) => {
+      if (!foodLightbox.classList.contains('is-open')) return;
+      if (foodViewerState.scale > 1) {
+        foodViewerState.scale = 1;
+        foodViewerState.x = 0;
+        foodViewerState.y = 0;
+        updateFoodLightboxTransform();
+        foodLightboxMediaWrap.scrollTop = 0;
+        foodLightboxMediaWrap.scrollLeft = 0;
+      } else {
+        const rect = foodLightboxMediaWrap.getBoundingClientRect();
+        adjustFoodLightboxScale(2, e.clientX - rect.left, e.clientY - rect.top);
+      }
+    });
+
+    foodLightboxMediaWrap.addEventListener('touchstart', (e) => {
+      if (!foodLightbox.classList.contains('is-open') || e.touches.length !== 2) return;
+      const p0 = e.touches[0];
+      const p1 = e.touches[1];
+      const dx = p0.clientX - p1.clientX;
+      const dy = p0.clientY - p1.clientY;
+      startDistance = Math.sqrt(dx * dx + dy * dy);
+      startScale = foodViewerState.scale;
+      startX = (p0.clientX + p1.clientX) / 2;
+      startY = (p0.clientY + p1.clientY) / 2;
+    }, { passive: true });
+
+    foodLightboxMediaWrap.addEventListener('touchmove', (e) => {
+      if (!foodLightbox.classList.contains('is-open') || e.touches.length !== 2) return;
+      const p0 = e.touches[0];
+      const p1 = e.touches[1];
+      const dx = p0.clientX - p1.clientX;
+      const dy = p0.clientY - p1.clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (startDistance <= 0) return;
+      const ratio = dist / startDistance;
+      const rect = foodLightboxMediaWrap.getBoundingClientRect();
+      adjustFoodLightboxScale((startScale * ratio) / foodViewerState.scale, startX - rect.left, startY - rect.top);
+    }, { passive: true });
+
+    foodLightboxMediaWrap.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        startDistance = 0;
+        startScale = foodViewerState.scale;
+      }
+    }, { passive: true });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && foodLightbox.classList.contains('is-open')) {
+        closeFoodLightbox();
+      }
+    });
+  }
+
+  function createFoodContentIfMissing() {
+    if (document.getElementById('food')) return;
+    const leftPanel = document.querySelector('.panel.left');
+    if (!leftPanel) return;
+    const foodTopics = buildFoodTopics();
+    let activeTopic = foodTopics[0] ? foodTopics[0].topic : '';
+    const activeDetailByTopic = {};
+    foodTopics.forEach(t => { activeDetailByTopic[t.topic] = t.items[0] ? t.items[0].stem : ''; });
+
+    const wrap = document.createElement('div');
+    wrap.id = 'food';
+    wrap.className = 'day-content hidden';
+    wrap.innerHTML = `
+      <div class="card food-wrap">
+        <h2 class="food-title">🍱 일본 음식/편의점 이미지 정보</h2>
+        <div class="food-sub">음식 정보 탭은 일정표/지도가 아닌 전용 레이아웃으로 표시됩니다. 이미지를 클릭하면 원본이 새 탭에서 열립니다.</div>
+        <div class="food-credit">
+          본 파일에서 사용한 이미지는 모두 <a href="https://x.com/jiu_illust" target="_blank" rel="noopener">https://x.com/jiu_illust</a>(트위터, X링크) JIU 작가님의 이미지입니다.<br/>
+          모든 이미지의 권리는 JIU 작가님에게 있습니다.<br/>
+          추가 관련 링크: <a href="https://x.com/jiu_illust/status/2000590893955575813" target="_blank" rel="noopener">https://x.com/jiu_illust/status/2000590893955575813</a><br/>
+          인스타그램: <a href="https://www.instagram.com/jiu_illustration/" target="_blank" rel="noopener">https://www.instagram.com/jiu_illustration/</a>
+        </div>
+        <div id="foodTopicTabs" class="food-topic-tabs"></div>
+        <div class="food-layout">
+          <div class="food-detail-col">
+            <p class="food-detail-title">세부 항목</p>
+            <div id="foodDetailList" class="food-detail-list"></div>
+          </div>
+          <div id="foodViewer" class="food-view"><div class="food-empty">항목을 선택하세요.</div></div>
+        </div>
+      </div>
+    `;
+    leftPanel.appendChild(wrap);
+
+    const topicTabs = wrap.querySelector('#foodTopicTabs');
+    const detailList = wrap.querySelector('#foodDetailList');
+    const viewer = wrap.querySelector('#foodViewer');
+
+    function renderFoodItem(topic, item) {
+      const encodedSrc = item.image;
+      viewer.innerHTML = `
+        <div class="food-image-box">
+          <img class="food-image" src="${encodedSrc}" alt="${item.stem}">
+          <div class="food-image-tip">이미지 클릭 시 확대 보기(확대/축소/스크롤/핀치 가능)</div>
+        </div>
+        <table class="food-table">
+          <tr><th>이름</th><td>${item.stem}</td></tr>
+          <tr><th>일본어 표기</th><td>未確認</td></tr>
+          <tr><th>한국어 발음</th><td>${item.stem}</td></tr>
+          <tr><th>특징</th><td>${topic} 주제의 세부 이미지 (${item.fileName})</td></tr>
+        </table>
+      `;
+      const img = viewer.querySelector('.food-image');
+      if (img) {
+        img.addEventListener('click', () => openFoodLightbox(encodedSrc, item.stem, `${topic} · ${item.stem}`));
+      }
+    }
+
+    function renderDetailButtons() {
+      detailList.innerHTML = '';
+      const topicObj = foodTopics.find(t => t.topic === activeTopic);
+      if (!topicObj || topicObj.items.length === 0) {
+        viewer.innerHTML = '<div class="food-empty">해당 주제의 이미지가 없습니다.</div>';
+        return;
+      }
+      topicObj.items.forEach((it) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'food-detail-btn' + (activeDetailByTopic[activeTopic] === it.stem ? ' active' : '');
+        btn.textContent = it.stem;
+        btn.addEventListener('click', () => {
+          activeDetailByTopic[activeTopic] = it.stem;
+          renderDetailButtons();
+          renderFoodItem(activeTopic, it);
+        });
+        detailList.appendChild(btn);
+      });
+      const selected = topicObj.items.find(i => i.stem === activeDetailByTopic[activeTopic]) || topicObj.items[0];
+      activeDetailByTopic[activeTopic] = selected.stem;
+      renderFoodItem(activeTopic, selected);
+    }
+
+    function renderTopicTabs() {
+      topicTabs.innerHTML = '';
+      foodTopics.forEach((topicObj) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'food-topic-btn' + (topicObj.topic === activeTopic ? ' active' : '');
+        btn.textContent = topicObj.topic;
+        btn.addEventListener('click', () => {
+          activeTopic = topicObj.topic;
+          renderTopicTabs();
+          renderDetailButtons();
+        });
+        topicTabs.appendChild(btn);
+      });
+    }
+
+    renderTopicTabs();
+    renderDetailButtons();
+  }
+
+  function renderSubwayTab() {
+    const summaryEl = document.getElementById('subwaySummary');
+    const bodyEl = document.getElementById('subwayTableBody');
+    if (!summaryEl || !bodyEl || !Array.isArray(OSAKA_SUBWAY_DATA)) return;
+
+    const byLine = {};
+    OSAKA_SUBWAY_DATA.forEach((row) => {
+      if (!byLine[row.line]) byLine[row.line] = { count: 0 };
+      byLine[row.line].count += 1;
+    });
+    const summaryHtml = Object.keys(byLine).sort((a, b) => a.localeCompare(b, 'ko')).map((line) => {
+      const item = byLine[line];
+      return `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:10px;"><b>${line}</b> ${item.count}역</span>`;
+    }).join('');
+    summaryEl.innerHTML = `총 <b>${OSAKA_SUBWAY_DATA.length}개 역</b> · ${summaryHtml}`;
+
+    bodyEl.innerHTML = OSAKA_SUBWAY_DATA.map((row, idx) => `
+      <tr class="sched-row subway-row" data-subway-index="${idx}">
+        <td>${row.line}</td>
+        <td>${row.station}</td>
+        <td>${row.description}</td>
+        <td>${row.address}</td>
+        <td class="mono">${row.lat}</td>
+        <td class="mono">${row.lon}</td>
+      </tr>
+    `).join('');
+
+    bodyEl.querySelectorAll('tr.subway-row').forEach((tr) => {
+      tr.addEventListener('click', () => {
+        const stationIndex = Number(tr.getAttribute('data-subway-index'));
+        if (!Number.isFinite(stationIndex)) return;
+        highlightSubwayStation(stationIndex);
+      });
+    });
+  }
+
+  function toggleFoodLayout(isFood) {
+    if (typeof shell !== 'undefined') {
+      lastMode = shell.classList.contains('landscape') ? 'landscape' : 'portrait';
+    }
+    if (rightPanel) rightPanel.style.display = isFood ? 'none' : '';
+    if (mapFrame) mapFrame.style.display = isFood ? 'none' : '';
+    if (legendCard) legendCard.style.display = isFood ? 'none' : '';
+
+    if (isFood && typeof shell !== 'undefined') {
+      shell.classList.remove('landscape');
+      shell.classList.add('portrait');
+    }
+  }
+  renderSubwayTab();
   const map = L.map('map', { center: [34.693, 135.50], zoom: 11 });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const streetBaseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18, attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
+  });
+  const satelliteBaseLayer = L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, attribution: '© Esri, Maxar, Earthstar Geographics, GeoEye'
+  });
+  let activeBaseLayer = streetBaseLayer;
+  streetBaseLayer.addTo(map);
+  const subwayLayer = L.layerGroup().addTo(map);
+  const subwayMarkerByIndex = {};
+  const subwaySegmentsByStation = {};
+  const subwayDisplayCoordByIndex = {};
+  const subwayTransferCountByIndex = {};
+
+  function buildSubwayPopup(row) {
+    return `
+      <div style="width:280px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',Arial,sans-serif;">
+        <div style="font-weight:900;font-size:14px;color:#111827;margin-bottom:6px;">🚇 ${row.line} ${row.station}</div>
+        <div style="font-size:12.5px;color:#374151;line-height:1.35;margin-bottom:6px;">${row.description}</div>
+        <div style="font-size:12px;color:#475569;"><b>주소</b>: ${row.address}</div>
+        <div style="font-size:11.5px;color:#64748b;margin-top:6px;">좌표: ${row.lat}, ${row.lon}</div>
+      </div>`;
+  }
+
+  function buildSubwayStationGroupKey(row) {
+    const lat = Number(row.lat);
+    const lon = Number(row.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
+    const stationBase = String(row.station || '')
+      .replace(/\([^)]*\)/g, '')
+      .replace(/\s+/g, '')
+      .replace(/역$/g, '')
+      .trim();
+    return `${stationBase}|${lat.toFixed(4)}|${lon.toFixed(4)}`;
+  }
+
+  function getOffsetLatLon(lat, lon, slotIndex, totalCount) {
+    if (totalCount <= 1) return [lat, lon];
+    const radiusMeters = totalCount === 2 ? 22 : 26;
+    const angle = (-Math.PI / 2) + ((Math.PI * 2 * slotIndex) / totalCount);
+    const dLat = (radiusMeters / 111320) * Math.sin(angle);
+    const cosLat = Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    const dLon = (radiusMeters / (111320 * cosLat)) * Math.cos(angle);
+    return [lat + dLat, lon + dLon];
+  }
+
+  function renderSubwayLayer() {
+    subwayLayer.clearLayers();
+    Object.keys(subwayMarkerByIndex).forEach((k) => { delete subwayMarkerByIndex[k]; });
+    Object.keys(subwaySegmentsByStation).forEach((k) => { delete subwaySegmentsByStation[k]; });
+    Object.keys(subwayDisplayCoordByIndex).forEach((k) => { delete subwayDisplayCoordByIndex[k]; });
+    Object.keys(subwayTransferCountByIndex).forEach((k) => { delete subwayTransferCountByIndex[k]; });
+
+    const groupedStationIndex = {};
+    OSAKA_SUBWAY_DATA.forEach((row, idx) => {
+      const key = buildSubwayStationGroupKey(row);
+      if (!key) return;
+      if (!groupedStationIndex[key]) groupedStationIndex[key] = [];
+      groupedStationIndex[key].push(idx);
+    });
+
+    Object.values(groupedStationIndex).forEach((indices) => {
+      const totalCount = indices.length;
+      indices.forEach((dataIndex, slotIndex) => {
+        const row = OSAKA_SUBWAY_DATA[dataIndex];
+        const lat = Number(row.lat);
+        const lon = Number(row.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        subwayTransferCountByIndex[String(dataIndex)] = totalCount;
+        subwayDisplayCoordByIndex[String(dataIndex)] = getOffsetLatLon(lat, lon, slotIndex, totalCount);
+      });
+    });
+
+    OSAKA_SUBWAY_DATA.forEach((row, idx) => {
+      const lat = Number(row.lat);
+      const lon = Number(row.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      const markerPos = subwayDisplayCoordByIndex[String(idx)] || [lat, lon];
+      const transferCount = Number(subwayTransferCountByIndex[String(idx)] || 1);
+      const lineColor = row.color || '#334155';
+      const badgeText = transferCount > 1 ? 'T' : 'M';
+      const stationIcon = L.divIcon({
+        className: 'subway-station-icon',
+        html: `<div class="subway-station-pin" style="--line-color:${lineColor};"><span class="subway-station-badge">${badgeText}</span></div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -14],
+        tooltipAnchor: [14, -10]
+      });
+      const m = L.marker(markerPos, { icon: stationIcon, keyboard: true });
+      m.bindTooltip(`${row.line} ${row.station}${transferCount > 1 ? ` · 환승 ${transferCount}개 노선` : ''}`, { sticky: true });
+      m.bindPopup(buildSubwayPopup(row), { maxWidth: 360 });
+      m.addTo(subwayLayer);
+      subwayMarkerByIndex[String(idx)] = m;
+    });
+
+    for (let i = 0; i < OSAKA_SUBWAY_DATA.length - 1; i += 1) {
+      const from = OSAKA_SUBWAY_DATA[i];
+      const to = OSAKA_SUBWAY_DATA[i + 1];
+      if (!from || !to || from.line !== to.line) continue;
+      const fromCoord = subwayDisplayCoordByIndex[String(i)];
+      const toCoord = subwayDisplayCoordByIndex[String(i + 1)];
+      if (!Array.isArray(fromCoord) || !Array.isArray(toCoord)) continue;
+
+      const link = L.polyline([fromCoord, toCoord], {
+        color: from.color || '#334155',
+        weight: 4,
+        opacity: 0.75,
+        lineCap: 'round',
+        lineJoin: 'round'
+      });
+      link.bindTooltip(`${from.line} ${from.station} → ${to.station}`, { sticky: true });
+      link.addTo(subwayLayer);
+
+      const a = String(i);
+      const b = String(i + 1);
+      if (!subwaySegmentsByStation[a]) subwaySegmentsByStation[a] = [];
+      if (!subwaySegmentsByStation[b]) subwaySegmentsByStation[b] = [];
+      subwaySegmentsByStation[a].push(link);
+      subwaySegmentsByStation[b].push(link);
+    }
+    if (!subwayLayerVisible) {
+      map.removeLayer(subwayLayer);
+    }
+  }
+
+  function highlightSubwayStation(stationIndex) {
+    const key = String(stationIndex);
+    const marker = subwayMarkerByIndex[key];
+    if (!marker) return;
+
+    clearHighlights();
+    toggleSubwayLayer(true);
+
+    const rowSelector = `#subwayTableBody tr[data-subway-index="${stationIndex}"]`;
+    const targetRow = document.querySelector(rowSelector);
+    if (targetRow) targetRow.classList.add('active');
+
+    const ll = marker.getLatLng();
+    highlightLayer.addLayer(L.circleMarker(ll, { radius: 18, color: '#fb923c', weight: 4, opacity: 1, fillColor: '#fb923c', fillOpacity: 0.16 }));
+    highlightLayer.addLayer(L.circleMarker(ll, { radius: 7, color: '#0f172a', weight: 2, opacity: 1, fillColor: '#0f172a', fillOpacity: 0.45 }));
+
+    (subwaySegmentsByStation[key] || []).forEach((segLine) => {
+      highlightLayer.addLayer(L.polyline(segLine.getLatLngs(), { color: '#0f172a', weight: 11, opacity: 0.16 }));
+      highlightLayer.addLayer(L.polyline(segLine.getLatLngs(), { color: '#f97316', weight: 6, opacity: 0.92 }));
+    });
+
+    map.setView(ll, Math.max(map.getZoom(), 12), { animate: true });
+    marker.openPopup();
+  }
+
+  function toggleSubwayLayer(forceVisible) {
+    subwayLayerVisible = typeof forceVisible === 'boolean' ? forceVisible : !subwayLayerVisible;
+    if (subwayLayerVisible) {
+      if (!map.hasLayer(subwayLayer)) map.addLayer(subwayLayer);
+    } else if (map.hasLayer(subwayLayer)) {
+      map.removeLayer(subwayLayer);
+    }
+    if (mapLayerSubwayBtn) mapLayerSubwayBtn.classList.toggle('active', subwayLayerVisible);
+  }
+
+  renderSubwayLayer();
+
+  function switchMapBaseLayer(type) {
+    if (!map) return;
+    if (type === 'satellite') {
+      if (activeBaseLayer && map.hasLayer(activeBaseLayer)) map.removeLayer(activeBaseLayer);
+      activeBaseLayer = satelliteBaseLayer;
+      satelliteBaseLayer.addTo(map);
+    } else {
+      if (activeBaseLayer && map.hasLayer(activeBaseLayer)) map.removeLayer(activeBaseLayer);
+      activeBaseLayer = streetBaseLayer;
+      streetBaseLayer.addTo(map);
+    }
+    if (mapLayerStreetBtn) mapLayerStreetBtn.classList.toggle('active', type !== 'satellite');
+    if (mapLayerSatelliteBtn) mapLayerSatelliteBtn.classList.toggle('active', type === 'satellite');
+    setTimeout(refreshMap, 120);
+  }
+
+  if (mapLayerStreetBtn) {
+    mapLayerStreetBtn.addEventListener('click', () => switchMapBaseLayer('street'));
+  }
+  if (mapLayerSatelliteBtn) {
+    mapLayerSatelliteBtn.addEventListener('click', () => switchMapBaseLayer('satellite'));
+  }
+  if (mapLayerSubwayBtn) {
+    mapLayerSubwayBtn.addEventListener('click', () => toggleSubwayLayer());
+  }
+
+  if (mapLayerStreetBtn) mapLayerStreetBtn.classList.add('active');
+  if (mapLayerSatelliteBtn) mapLayerSatelliteBtn.classList.remove('active');
+  if (mapLayerSubwayBtn) mapLayerSubwayBtn.classList.remove('active');
   L.control.scale().addTo(map);
 
   map.on('popupopen', (e) => {
+    const popup = e && e.popup ? e.popup : null;
     const el = e && e.popup ? e.popup.getElement() : null;
     if (!el) return;
     el.querySelectorAll('img').forEach((img) => {
@@ -816,6 +1786,22 @@ document.addEventListener('DOMContentLoaded', function() {
         this.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/280px-No_image_available.svg.png';
       };
     });
+
+    const ll = popup && popup.getLatLng ? popup.getLatLng() : null;
+    const content = el.querySelector('.leaflet-popup-content');
+    if (!content || !ll || !Number.isFinite(ll.lat) || !Number.isFinite(ll.lng)) return;
+    if (content.querySelector('.gmaps-open-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'gmaps-open-wrap';
+    const a = document.createElement('a');
+    a.className = 'gmaps-open-btn';
+    a.href = `https://www.google.com/maps?q=${ll.lat},${ll.lng}`;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = '📍 구글 지도에서 열기';
+    wrap.appendChild(a);
+    content.appendChild(wrap);
   });
 
   const highlightLayer = L.layerGroup().addTo(map);
@@ -835,6 +1821,23 @@ document.addEventListener('DOMContentLoaded', function() {
     Object.keys(polyByOrder).forEach((k) => {
       const pl = polyByOrder[k];
       if (pl && originalPoly[k]) pl.setStyle(originalPoly[k]);
+    });
+  }
+
+  function isHotelStop(stop) {
+    const txt = `${stop && stop.id ? stop.id : ''} ${stop && stop.title ? stop.title : ''}`.toLowerCase();
+    return txt.includes('hotel') || txt.includes('숙소') || txt.includes('minn');
+  }
+
+  function buildHotelMarkerIcon(order) {
+    const ord = String(order ?? '');
+    return L.divIcon({
+      className: 'hotel-marker-icon',
+      html: `<div class="hotel-marker-wrap"><div class="hotel-marker-body">🏨</div><div class="hotel-marker-tip"></div><div class="hotel-marker-order">${ord}</div></div>`,
+      iconSize: [44, 56],
+      iconAnchor: [22, 52],
+      popupAnchor: [0, -44],
+      tooltipAnchor: [14, -40]
     });
   }
 
@@ -873,20 +1876,26 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function attachRowHandlers(dayKey) {
-    document.querySelectorAll('.day-content .sched-row').forEach(tr => { tr.onclick = null; });
+    document.querySelectorAll('.day-content .sched-row:not(.subway-row)').forEach((tr) => { tr.onclick = null; });
     const dayDiv = document.getElementById(dayKey);
     if (!dayDiv) return;
-    dayDiv.querySelectorAll('tbody tr.sched-row').forEach((tr) => {
-      tr.addEventListener('click', () => {
+    dayDiv.querySelectorAll('tbody tr.sched-row:not(.subway-row)').forEach((tr) => {
+      tr.onclick = () => {
         const stop = tr.getAttribute('data-stop') || '';
         const seg = tr.getAttribute('data-seg') || '';
         tr.classList.add('active');
         highlight(stop, seg);
-      });
+      };
     });
   }
 
   function setDay(dayKey) {
+    if (mapLightboxState.isFullscreen) {
+      closeMapFullscreen();
+    }
+    if (foodLightbox && foodLightbox.classList.contains('is-open')) {
+      closeFoodLightbox();
+    }
     document.querySelectorAll('.day-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-day') === dayKey);
     });
@@ -902,29 +1911,43 @@ document.addEventListener('DOMContentLoaded', function() {
     markerById = {}; polyByOrder = {}; originalPoly = {};
     clearHighlights();
 
+    const isFood = dayKey === 'food';
+    toggleFoodLayout(isFood);
+    if (isFood) {
+      const legendBody = document.getElementById('legendBody');
+      if (legendBody) legendBody.innerHTML = '';
+      return;
+    }
+
     const day = DAYS[dayKey];
     if (!day) return;
     dayLayer = L.layerGroup().addTo(map);
 
     (day.stops || []).forEach(s => {
-      const mkr = L.marker([s.lat, s.lon]).addTo(dayLayer);
+      const markerOptions = {};
+      if (isHotelStop(s)) {
+        markerOptions.icon = buildHotelMarkerIcon(s.order);
+      }
+      const mkr = L.marker([s.lat, s.lon], markerOptions).addTo(dayLayer);
       mkr.bindTooltip(`${s.order}. ${s.title}`, {sticky:true});
       mkr.bindPopup(s.popup, {maxWidth: 360});
       markerById[s.id] = mkr;
 
-      L.marker([s.lat, s.lon], {
-        icon: L.divIcon({
-          className: 'empty',
-          html: `<div class="mono" style="
-            width:22px;height:22px;border-radius:999px;
-            background:rgba(15,23,42,0.85);
-            color:white; display:flex; align-items:center; justify-content:center;
-            font-size:12px;font-weight:900;border:2px solid rgba(255,255,255,0.90);
-          ">${s.order}</div>`,
-          iconSize: [26,26],
-          iconAnchor: [13,13]
-        })
-      }).addTo(dayLayer);
+      if (!isHotelStop(s)) {
+        L.marker([s.lat, s.lon], {
+          icon: L.divIcon({
+            className: 'empty',
+            html: `<div class="mono" style="
+              width:22px;height:22px;border-radius:999px;
+              background:rgba(15,23,42,0.85);
+              color:white; display:flex; align-items:center; justify-content:center;
+              font-size:12px;font-weight:900;border:2px solid rgba(255,255,255,0.90);
+            ">${s.order}</div>`,
+            iconSize: [26,26],
+            iconAnchor: [13,13]
+          })
+        }).addTo(dayLayer);
+      }
     });
 
     (day.segments || []).forEach(seg => {
@@ -984,6 +2007,34 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', () => setDay(btn.getAttribute('data-day')));
   });
 
+  if (mapFullscreenBtn) {
+    mapFullscreenBtn.addEventListener('click', toggleMapFullscreen);
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!mapPanel) return;
+    if (document.fullscreenElement === mapPanel) {
+      mapLightboxState.isFullscreen = true;
+      mapLightboxState.isFallbackFullscreen = false;
+      if (mapFullscreenBtn) {
+        mapFullscreenBtn.textContent = '지도 전체화면 종료';
+        mapFullscreenBtn.setAttribute('aria-pressed', 'true');
+        mapFullscreenBtn.setAttribute('aria-label', '지도 전체화면 종료');
+      }
+      return;
+    }
+    if (mapLightboxState.isFullscreen && !mapLightboxState.isFallbackFullscreen) {
+      mapLightboxState.isFullscreen = false;
+      if (mapFullscreenBtn) {
+        mapFullscreenBtn.textContent = '지도 전체화면';
+        mapFullscreenBtn.setAttribute('aria-pressed', 'false');
+        mapFullscreenBtn.setAttribute('aria-label', '지도 전체화면 켜기');
+      }
+    }
+  });
+
+  bindFoodLightboxInteractions();
+
   // init
   setDay('day1');
   setTimeout(refreshMap, 300);
@@ -992,6 +2043,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
 
 
 
